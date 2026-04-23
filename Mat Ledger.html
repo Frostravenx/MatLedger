@@ -1,0 +1,1856 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="night">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mat Ledger — BJJ Training Analytics</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;1,400&family=Space+Mono:wght@400;700&family=Barlow:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+
+/* ── THEMES ─────────────────────────────────────────── */
+[data-theme="night"]{
+  --bg:#07070f;--surface:#0e0e1c;--card:#141424;--card-hover:#1a1a2e;
+  --border:#22223a;--border-bright:#30305a;
+  --primary:#d4a843;--primary-dim:rgba(212,168,67,.12);--primary-glow:rgba(212,168,67,.25);
+  --text:#e8e4d4;--text-muted:#6a6a8a;--text-dim:#303050;
+  --accent:#c04a4a;--green:#4aaf79;--sidebar-bg:#08080e;
+}
+[data-theme="white"]{
+  --bg:#f0ece4;--surface:#faf7f1;--card:#ffffff;--card-hover:#f5f1ea;
+  --border:#ddd8ce;--border-bright:#c8c0b4;
+  --primary:#8b1c1c;--primary-dim:rgba(139,28,28,.07);--primary-glow:rgba(139,28,28,.15);
+  --text:#1a1a2a;--text-muted:#8a8070;--text-dim:#ccc5ba;
+  --accent:#8b1c1c;--green:#2d7050;--sidebar-bg:#e8e3da;
+}
+[data-theme="tatami"]{
+  --bg:#0b0804;--surface:#171008;--card:#1f1508;--card-hover:#27190a;
+  --border:#301e0b;--border-bright:#462c11;
+  --primary:#e8a030;--primary-dim:rgba(232,160,48,.10);--primary-glow:rgba(232,160,48,.22);
+  --text:#f0e8cc;--text-muted:#8a7050;--text-dim:#4a300a;
+  --accent:#e06030;--green:#70a030;--sidebar-bg:#090603;
+}
+[data-theme="steel"]{
+  --bg:#040a11;--surface:#09141e;--card:#0f1c2b;--card-hover:#152436;
+  --border:#1a2c3e;--border-bright:#243d52;
+  --primary:#38bcd0;--primary-dim:rgba(56,188,208,.10);--primary-glow:rgba(56,188,208,.22);
+  --text:#cce4f0;--text-muted:#456678;--text-dim:#142030;
+  --accent:#e04e78;--green:#38af80;--sidebar-bg:#030810;
+}
+
+/* ── BASE ─────────────────────────────────────────── */
+body{font-family:'Barlow',sans-serif;font-weight:400;background:var(--bg);color:var(--text);min-height:100vh;display:flex;overflow:hidden;transition:background .3s,color .3s}
+
+/* ── SIDEBAR ─────────────────────────────────────── */
+.sidebar{width:220px;min-width:220px;background:var(--sidebar-bg);border-right:1px solid var(--border);display:flex;flex-direction:column;height:100vh;position:sticky;top:0;z-index:100;transition:background .3s}
+.sidebar-logo{padding:26px 22px 20px;border-bottom:1px solid var(--border)}
+.logo-mark{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;color:var(--primary);letter-spacing:.02em;line-height:1;display:block}
+.logo-sub{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);letter-spacing:.14em;text-transform:uppercase;margin-top:5px;display:block}
+.sidebar-nav{flex:1;padding:14px 0}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 22px;color:var(--text-muted);cursor:pointer;transition:all .18s;font-size:13px;font-weight:500;letter-spacing:.01em;border-left:2px solid transparent;user-select:none}
+.nav-item:hover{color:var(--text);background:var(--primary-dim)}
+.nav-item.active{color:var(--primary);border-left-color:var(--primary);background:var(--primary-dim)}
+.nav-icon{width:15px;height:15px;flex-shrink:0;opacity:.65;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+.nav-item.active .nav-icon{opacity:1}
+.sidebar-footer{padding:14px 22px 20px;border-top:1px solid var(--border)}
+.theme-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px}
+.theme-swatches{display:flex;gap:8px}
+.theme-swatch{width:26px;height:26px;border-radius:50%;cursor:pointer;border:2px solid transparent;transition:transform .18s,border-color .18s;position:relative;outline:none}
+.theme-swatch:hover{transform:scale(1.15)}
+.theme-swatch.active{border-color:var(--text)}
+.swatch-night{background:conic-gradient(#07070f 50%,#d4a843 50%)}
+.swatch-white{background:conic-gradient(#f0ece4 50%,#8b1c1c 50%)}
+.swatch-tatami{background:conic-gradient(#0b0804 50%,#e8a030 50%)}
+.swatch-steel{background:conic-gradient(#040a11 50%,#38bcd0 50%)}
+
+/* ── MAIN ─────────────────────────────────────────── */
+.main{flex:1;height:100vh;overflow-y:auto;padding:38px 46px;transition:background .3s}
+.page{display:none}
+.page.active{display:block;animation:fadeIn .28s ease}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── TYPOGRAPHY ─────────────────────────────────── */
+.page-title{font-family:'Cormorant Garamond',serif;font-size:40px;font-weight:300;letter-spacing:-.01em;line-height:1;margin-bottom:4px}
+.page-subtitle{font-size:13px;color:var(--text-muted);letter-spacing:.01em;margin-bottom:34px}
+.section-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:var(--text-muted)}
+
+/* ── PAGE HEADER ─────────────────────────────────── */
+.page-header{display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:34px}
+.header-right{display:flex;gap:10px;padding-bottom:2px}
+
+/* ── CARDS ─────────────────────────────────────── */
+.card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:20px 24px;transition:border-color .18s}
+.card:hover{border-color:var(--border-bright)}
+
+/* ── STAT GRID ─────────────────────────────────── */
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:32px}
+.stat-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:18px 20px;position:relative;overflow:hidden;transition:border-color .18s}
+.stat-card:hover{border-color:var(--border-bright)}
+.stat-card::after{content:'';position:absolute;top:0;left:0;right:0;height:2px;background:var(--primary);opacity:.55}
+.stat-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.14em;text-transform:uppercase;color:var(--text-muted);margin-bottom:10px}
+.stat-value{font-family:'Space Mono',monospace;font-size:30px;font-weight:700;color:var(--primary);line-height:1}
+.stat-sub{font-size:11px;color:var(--text-muted);margin-top:6px;line-height:1.4}
+
+/* ── LAYOUT HELPERS ─────────────────────────────── */
+.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px;margin-bottom:22px}
+.three-col{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+
+/* ── BUTTONS ──────────────────────────────────── */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:8px 16px;border-radius:5px;font-family:'Barlow',sans-serif;font-size:13px;font-weight:500;cursor:pointer;border:none;transition:all .18s;white-space:nowrap;outline:none}
+.btn-primary{background:var(--primary);color:var(--bg)}
+.btn-primary:hover{filter:brightness(1.08);transform:translateY(-1px);box-shadow:0 4px 14px var(--primary-glow)}
+.btn-ghost{background:transparent;color:var(--text-muted);border:1px solid var(--border)}
+.btn-ghost:hover{border-color:var(--border-bright);color:var(--text);background:var(--primary-dim)}
+.btn-danger{background:transparent;color:var(--accent);border:1px solid var(--border)}
+.btn-danger:hover{border-color:var(--accent);background:rgba(192,74,74,.09)}
+.btn-sm{padding:5px 10px;font-size:11px}
+
+/* ── FORMS ─────────────────────────────────────── */
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+.form-row.three{grid-template-columns:1fr 1fr 1fr}
+.form-row.full{grid-template-columns:1fr}
+.form-field{display:flex;flex-direction:column;gap:5px}
+.form-label{font-family:'Space Mono',monospace;font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted)}
+.form-input,.form-select{background:var(--surface);border:1px solid var(--border);border-radius:5px;color:var(--text);font-family:'Barlow',sans-serif;font-size:13px;padding:8px 12px;transition:border-color .18s;outline:none;width:100%}
+.form-input:focus,.form-select:focus{border-color:var(--primary)}
+.form-input::placeholder{color:var(--text-dim)}
+.form-select option{background:var(--card);color:var(--text)}
+.form-actions{display:flex;gap:10px;margin-top:20px}
+input[type="color"]{border:1px solid var(--border);border-radius:4px;padding:2px 3px;background:var(--surface);width:42px;height:34px;cursor:pointer}
+input[type="file"]{display:none}
+
+/* ── BELT COLORS ─────────────────────────────── */
+.belt-pip{display:inline-block;width:32px;height:10px;border-radius:2px;vertical-align:middle;flex-shrink:0}
+.belt-pip.White{background:#e0dccf;border:1px solid rgba(0,0,0,.2)}
+.belt-pip.Blue{background:#1565c0}
+.belt-pip.Purple{background:#6a0d91}
+.belt-pip.Brown{background:#5d4037}
+.belt-pip.Black{background:#1a1a1a;border:1px solid rgba(255,255,255,.15)}
+
+/* ── GYM CARDS ─────────────────────────────────── */
+.gym-cards{display:flex;flex-direction:column;gap:14px}
+.gym-card{background:var(--card);border:1px solid var(--border);border-radius:8px;overflow:hidden;transition:border-color .18s}
+.gym-card:hover{border-color:var(--border-bright)}
+.gym-card-header{padding:14px 18px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:10px}
+.gym-color-dot{width:10px;height:10px;border-radius:50%;flex-shrink:0}
+.gym-name-text{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;flex:1}
+.gym-card-body{padding:14px 18px}
+.gym-mini-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:12px}
+.gym-mini-label{font-family:'Space Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);margin-bottom:3px}
+.gym-mini-value{font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--primary)}
+.gym-meta{font-size:11px;color:var(--text-muted);line-height:1.7}
+.gym-card-footer{padding:8px 18px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center}
+.expand-toggle{cursor:pointer;font-size:11px;color:var(--text-muted);user-select:none;transition:color .18s;font-family:'Space Mono',monospace;letter-spacing:.04em}
+.expand-toggle:hover{color:var(--primary)}
+.expandable{display:none;padding:0 18px 14px}
+.expandable.open{display:block}
+
+/* ── BELT TIMELINE ─────────────────────────────── */
+.belt-timeline{padding-left:40px;position:relative}
+.belt-timeline::before{content:'';position:absolute;left:13px;top:18px;bottom:18px;width:2px;background:var(--border)}
+.belt-entry{position:relative;margin-bottom:16px}
+.belt-dot{position:absolute;left:-32px;top:18px;width:12px;height:12px;border-radius:50%;border:2px solid var(--surface)}
+.belt-card{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:14px 18px;display:flex;align-items:center;gap:14px;transition:border-color .18s}
+.belt-card:hover{border-color:var(--border-bright)}
+.belt-card-info{flex:1;min-width:0}
+.belt-card-name{font-family:'Cormorant Garamond',serif;font-size:19px;font-weight:600;display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.belt-card-date{font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted);margin-top:3px}
+.belt-card-stats{display:flex;gap:18px;flex-shrink:0}
+.belt-stat{text-align:right}
+.belt-stat-label{font-family:'Space Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted)}
+.belt-stat-value{font-family:'Space Mono',monospace;font-size:20px;font-weight:700;color:var(--primary)}
+
+/* ── YEAR CHART ─────────────────────────────────── */
+.year-chart{display:flex;align-items:flex-end;gap:6px;height:108px;padding-top:20px}
+.year-bar-wrap{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;min-width:0}
+.year-bar{width:100%;background:var(--primary);opacity:.65;border-radius:3px 3px 0 0;transition:opacity .18s;position:relative;cursor:default;min-height:2px}
+.year-bar:hover{opacity:1}
+.year-bar-count{position:absolute;top:-16px;left:50%;transform:translateX(-50%);font-family:'Space Mono',monospace;font-size:8px;color:var(--text-muted);white-space:nowrap;opacity:0;transition:opacity .18s;pointer-events:none}
+.year-bar-wrap:hover .year-bar-count{opacity:1}
+.year-bar-label{font-family:'Space Mono',monospace;font-size:8px;color:var(--text-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;width:100%;text-align:center}
+
+/* ── SESSION LIST ─────────────────────────────── */
+.session-row{display:flex;align-items:center;padding:8px 0;border-bottom:1px solid var(--border);gap:10px;font-size:12px}
+.session-row:last-child{border-bottom:none}
+.session-date{font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted);width:78px;flex-shrink:0}
+.session-times{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);flex-shrink:0;line-height:1.5;text-align:right;width:90px}
+.session-times span{display:block}
+.session-gym{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;padding-left:8px;border-left-width:2px;border-left-style:solid}
+.session-dur{font-family:'Space Mono',monospace;font-size:10px;color:var(--primary);flex-shrink:0}
+
+/* ── DATA PAGE ─────────────────────────────────── */
+.drop-zone{border:2px dashed var(--border);border-radius:10px;padding:44px 24px;text-align:center;cursor:pointer;transition:all .18s;margin-bottom:20px}
+.drop-zone:hover,.drop-zone.drag-over{border-color:var(--primary);background:var(--primary-dim)}
+.drop-icon{font-size:36px;margin-bottom:10px;opacity:.7}
+.drop-title{font-family:'Cormorant Garamond',serif;font-size:20px;font-weight:400;margin-bottom:4px}
+.drop-sub{font-size:12px;color:var(--text-muted)}
+.file-item{background:var(--card);border:1px solid var(--border);border-radius:6px;padding:10px 14px;margin-bottom:8px;display:flex;align-items:center;gap:10px}
+.file-info{flex:1;min-width:0}
+.file-name{font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.file-meta{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);margin-top:2px}
+.file-badge{font-family:'Space Mono',monospace;font-size:9px;padding:3px 8px;border-radius:20px;background:var(--primary-dim);color:var(--primary);flex-shrink:0}
+.file-err{font-family:'Space Mono',monospace;font-size:9px;padding:3px 8px;border-radius:20px;background:rgba(192,74,74,.12);color:var(--accent);flex-shrink:0}
+
+/* ── NOTICE ─────────────────────────────────────── */
+.notice{background:var(--primary-dim);border:1px solid var(--primary-glow);border-radius:6px;padding:12px 16px;font-size:12px;line-height:1.6;margin-bottom:20px;display:flex;gap:10px}
+
+/* ── MODAL ─────────────────────────────────────── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);display:flex;align-items:center;justify-content:center;z-index:1000;opacity:0;pointer-events:none;transition:opacity .2s;backdrop-filter:blur(2px)}
+.modal-overlay.open{opacity:1;pointer-events:all}
+.modal{background:var(--card);border:1px solid var(--border-bright);border-radius:10px;padding:26px;width:500px;max-width:90vw;transform:translateY(10px);transition:transform .2s;position:relative;max-height:90vh;overflow-y:auto}
+.modal-overlay.open .modal{transform:translateY(0)}
+.modal-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;margin-bottom:20px;padding-right:24px}
+.modal-close{position:absolute;top:22px;right:22px;cursor:pointer;color:var(--text-muted);font-size:16px;line-height:1;transition:color .18s;background:none;border:none;padding:2px;outline:none}
+.modal-close:hover{color:var(--text)}
+
+/* ── TABLE ─────────────────────────────────────── */
+.data-table{width:100%;border-collapse:collapse;font-size:12px}
+.data-table th{font-family:'Space Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);text-align:left;padding:7px 10px;border-bottom:1px solid var(--border)}
+.data-table td{padding:7px 10px;border-bottom:1px solid var(--border);color:var(--text)}
+.data-table tr:last-child td{border-bottom:none}
+.data-table tr:hover td{background:var(--primary-dim)}
+.td-mono{font-family:'Space Mono',monospace;font-size:11px}
+.td-primary{font-family:'Space Mono',monospace;font-size:11px;color:var(--primary)}
+
+/* ── BADGE ─────────────────────────────────────── */
+.badge{display:inline-flex;align-items:center;padding:2px 7px;border-radius:20px;font-family:'Space Mono',monospace;font-size:8px;letter-spacing:.04em}
+.badge-primary{background:var(--primary-dim);color:var(--primary)}
+.badge-muted{background:var(--border);color:var(--text-muted)}
+
+/* ── DIVIDER ─────────────────────────────────── */
+.divider{height:1px;background:var(--border);margin:26px 0}
+
+/* ── EMPTY STATE ─────────────────────────────── */
+.empty-state{text-align:center;padding:52px 20px;color:var(--text-muted)}
+.empty-icon{font-size:44px;margin-bottom:14px;opacity:.35}
+.empty-title{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:400;color:var(--text-muted);margin-bottom:8px}
+.empty-text{font-size:13px;color:var(--text-muted);max-width:320px;margin:0 auto;line-height:1.7}
+
+/* ── RHYTHM BARS ─────────────────────────────────── */
+.rhythm-row{display:flex;align-items:center;gap:10px;margin-bottom:7px}
+.rhythm-label{font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted);width:38px;flex-shrink:0}
+.rhythm-bar-track{flex:1;background:var(--border);border-radius:3px;height:9px;position:relative}
+.rhythm-bar-fill{height:100%;border-radius:3px;background:var(--primary);transition:width .4s ease}
+.rhythm-bar-fill.dim{opacity:.5}
+.rhythm-count{font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted);width:68px;text-align:right;flex-shrink:0}
+
+/* ── YEARS TABLE ─────────────────────────────────── */
+.years-table{width:100%;border-collapse:collapse}
+.years-table th{font-family:'Space Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);text-align:left;padding:9px 14px;border-bottom:2px solid var(--border);position:sticky;top:0;background:var(--bg)}
+.years-table td{padding:11px 14px;border-bottom:1px solid var(--border);vertical-align:top;font-size:13px}
+.years-table tr:hover td{background:var(--primary-dim)}
+.years-table tr:last-child td{border-bottom:none}
+.year-num{font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:600;line-height:1}
+.year-sessions-big{font-family:'Space Mono',monospace;font-size:18px;font-weight:700;color:var(--primary)}
+.year-hours{font-family:'Space Mono',monospace;font-size:13px;color:var(--text-muted)}
+.gym-breakdown-line{font-size:12px;color:var(--text-muted);line-height:1.8}
+.gym-breakdown-line strong{color:var(--text);font-weight:500}
+
+/* ── SESSION BROWSER ─────────────────────────────── */
+.sessions-header-row{display:grid;grid-template-columns:100px 80px 220px 1fr 80px 70px;gap:10px;padding:6px 12px;font-family:'Space Mono',monospace;font-size:8px;letter-spacing:.12em;text-transform:uppercase;color:var(--text-muted);border-bottom:2px solid var(--border)}
+.session-full-row{display:grid;grid-template-columns:100px 80px 220px 1fr 80px 70px;gap:10px;padding:9px 12px;border-bottom:1px solid var(--border);align-items:center;font-size:12px;transition:background .12s}
+.session-full-row:last-child{border-bottom:none}
+.session-full-row:hover{background:var(--primary-dim)}
+.sf-date{font-family:'Space Mono',monospace;font-size:10px;color:var(--text-muted)}
+.sf-times{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);line-height:1.7}
+.sf-times .lbl{color:var(--text-dim);font-size:8px;letter-spacing:.06em;margin-right:3px}
+.sf-gym{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;display:flex;align-items:center;gap:7px}
+.sf-gym-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.sf-bar-wrap{display:flex;align-items:center;padding:0 4px}
+.sf-bar-track{width:100%;height:4px;background:var(--border);border-radius:2px;overflow:hidden}
+.sf-bar-fill{height:100%;background:var(--primary);opacity:.5;border-radius:2px}
+.sf-belt{font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted)}
+.sf-dur{font-family:'Space Mono',monospace;font-size:11px;color:var(--primary);text-align:right}
+.sessions-summary-bar{display:flex;gap:22px;padding:12px 14px;background:var(--card);border:1px solid var(--border);border-radius:7px;font-size:12px}
+.ssb-item{display:flex;flex-direction:column;gap:2px}
+.ssb-label{font-family:'Space Mono',monospace;font-size:8px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted)}
+.ssb-value{font-family:'Space Mono',monospace;font-size:15px;font-weight:700;color:var(--primary)}
+
+
+/* ── EXPORT INSTRUCTIONS ─────────────────────────── */
+.export-card{background:var(--card);border:1px solid var(--border);border-radius:8px;margin-bottom:20px;overflow:hidden}
+.export-card-tabs{display:flex;border-bottom:1px solid var(--border)}
+.export-tab{flex:1;padding:10px 16px;font-family:'Space Mono',monospace;font-size:10px;letter-spacing:.1em;text-transform:uppercase;color:var(--text-muted);cursor:pointer;text-align:center;transition:all .18s;border:none;background:none;outline:none}
+.export-tab.active{color:var(--primary);background:var(--primary-dim);border-bottom:2px solid var(--primary);margin-bottom:-1px}
+.export-tab-content{display:none;padding:18px 20px}
+.export-tab-content.active{display:block}
+.export-note{font-size:11px;color:var(--text-muted);margin-top:14px;padding-top:12px;border-top:1px solid var(--border);line-height:1.7}
+.export-note strong{color:var(--text)}
+
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:3px}
+::-webkit-scrollbar-thumb:hover{background:var(--border-bright)}
+
+/* ── STAGGER ANIMATION ─────────────────────────── */
+.stagger>*{opacity:0;animation:slideUp .3s ease forwards}
+.stagger>*:nth-child(1){animation-delay:.04s}
+.stagger>*:nth-child(2){animation-delay:.08s}
+.stagger>*:nth-child(3){animation-delay:.12s}
+.stagger>*:nth-child(4){animation-delay:.16s}
+.stagger>*:nth-child(5){animation-delay:.20s}
+.stagger>*:nth-child(6){animation-delay:.24s}
+.stagger>*:nth-child(7){animation-delay:.28s}
+.stagger>*:nth-child(8){animation-delay:.32s}
+@keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+/* ── RESPONSIVE ─────────────────────────────────── */
+
+/* Mobile bottom nav */
+.mobile-nav{display:none;position:fixed;bottom:0;left:0;right:0;background:var(--sidebar-bg);border-top:1px solid var(--border);z-index:200;padding:0 4px env(safe-area-inset-bottom,0)}
+.mobile-nav-inner{display:flex;justify-content:space-around;align-items:stretch}
+.mobile-nav-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:3px;padding:8px 4px 10px;cursor:pointer;color:var(--text-muted);font-size:9px;font-family:'Space Mono',monospace;letter-spacing:.06em;text-transform:uppercase;transition:color .18s;border:none;background:none;outline:none;-webkit-tap-highlight-color:transparent}
+.mobile-nav-item.active{color:var(--primary)}
+.mobile-nav-item svg{width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
+
+/* Geocode search result list */
+.geo-results{background:var(--card);border:1px solid var(--border-bright);border-radius:5px;margin-top:4px;overflow:hidden;display:none;max-height:260px;overflow-y:auto}
+.geo-results.show{display:block}
+.geo-result-item{padding:9px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;line-height:1.4}
+.geo-result-item:last-child{border-bottom:none}
+.geo-result-item:hover{background:var(--primary-dim)}
+.geo-result-name{font-weight:500;color:var(--text)}
+.geo-result-addr{font-size:11px;color:var(--text-muted);margin-top:1px}
+.geo-status{font-family:'Space Mono',monospace;font-size:9px;padding:6px 12px;color:var(--text-muted)}
+
+@media(max-width:1100px){
+  .stat-grid{grid-template-columns:repeat(2,1fr)}
+  .main{padding:26px 22px}
+  .two-col{grid-template-columns:1fr}
+}
+
+@media(max-width:768px){
+  body{flex-direction:column}
+  .sidebar{display:none}
+  .mobile-nav{display:block}
+  .main{height:auto;min-height:100vh;overflow-y:auto;padding:18px 16px 80px;padding-bottom:calc(70px + env(safe-area-inset-bottom,0))}
+  .page-title{font-size:28px}
+  .page-header{flex-direction:column;align-items:flex-start;gap:12px;margin-bottom:20px}
+  .header-right{width:100%;flex-wrap:wrap}
+  .stat-grid{grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+  .stat-value{font-size:22px}
+  .two-col,.three-col{grid-template-columns:1fr;gap:12px}
+  .form-row,.form-row.three{grid-template-columns:1fr;gap:10px}
+  .modal{padding:18px;width:100%;max-width:100%;border-radius:16px 16px 0 0;margin:0;position:fixed;bottom:0;left:0;right:0;max-height:92vh}
+  .modal-overlay{align-items:flex-end}
+  /* Year chart scrollable on mobile */
+  .year-chart{overflow-x:auto;gap:4px;height:88px}
+  .year-bar-wrap{min-width:28px}
+  /* Sessions table on mobile: hide belt col, simplify */
+  .sessions-header-row{grid-template-columns:72px 64px 1fr 52px;gap:6px;padding:5px 8px}
+  .session-full-row{grid-template-columns:72px 64px 1fr 52px;gap:6px;padding:7px 8px}
+  .sf-belt{display:none}
+  .sf-bar-wrap{display:none}
+  .sessions-header-row span:nth-child(4){display:none}
+  .sessions-header-row span:nth-child(5){display:none}
+  /* Years table scrollable */
+  .years-table-wrap-inner{overflow-x:auto}
+  .years-table{min-width:480px}
+  /* Gym mini stats 3-col stays, card body wraps */
+  .gym-mini-stats{gap:6px}
+  /* Belt card stack */
+  .belt-card{flex-wrap:wrap;gap:10px}
+  .belt-card-stats{gap:10px}
+  /* Sessions filter bar stacks */
+  #page-sessions .header-right{flex-direction:column;align-items:stretch}
+  #page-sessions .header-right select{width:100%!important}
+  .sessions-summary-bar{flex-wrap:wrap;gap:12px}
+}
+
+@media(max-width:380px){
+  .stat-grid{grid-template-columns:1fr}
+  .main{padding:14px 12px 80px}
+}
+</style>
+</head>
+<body>
+
+<!-- ── SIDEBAR ──────────────────────────────────────────── -->
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <span class="logo-mark">Mat Ledger</span>
+    <span class="logo-sub">BJJ Training Analytics</span>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+      <svg class="nav-icon" viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      Overview
+    </div>
+    <div class="nav-item" data-page="gyms" onclick="navigate('gyms')">
+      <svg class="nav-icon" viewBox="0 0 16 16"><path d="M8 1C5.2 1 3 3.2 3 6c0 4 5 9 5 9s5-5 5-9c0-2.8-2.2-5-5-5zm0 6.5c-.8 0-1.5-.7-1.5-1.5S7.2 4 8 4s1.5.7 1.5 1.5S8.8 7.5 8 7.5z"/></svg>
+      Gyms
+    </div>
+    <div class="nav-item" data-page="belts" onclick="navigate('belts')">
+      <svg class="nav-icon" viewBox="0 0 16 16"><path d="M1 4h14M1 8h14M1 12h14"/></svg>
+      Belts
+    </div>
+    <div class="nav-item" data-page="years" onclick="navigate('years')">
+      <svg class="nav-icon" viewBox="0 0 16 16"><rect x="1" y="10" width="3" height="5" rx="1"/><rect x="6" y="6" width="3" height="9" rx="1"/><rect x="11" y="2" width="3" height="13" rx="1"/></svg>
+      Years
+    </div>
+    <div class="nav-item" data-page="sessions" onclick="navigate('sessions')">
+      <svg class="nav-icon" viewBox="0 0 16 16"><path d="M2 4h12M2 8h8M2 12h10"/></svg>
+      Sessions
+    </div>
+    <div class="nav-item" data-page="data" onclick="navigate('data')">
+      <svg class="nav-icon" viewBox="0 0 16 16"><path d="M9 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6L9 2z"/><path d="M9 2v4h4"/></svg>
+      Data
+    </div>
+  </nav>
+  <div class="sidebar-footer">
+    <div class="theme-label">Theme</div>
+    <div class="theme-swatches">
+      <div class="theme-swatch swatch-night active" data-t="night" onclick="setTheme('night')" title="Night Dojo"></div>
+      <div class="theme-swatch swatch-white" data-t="white" onclick="setTheme('white')" title="Gi White"></div>
+      <div class="theme-swatch swatch-tatami" data-t="tatami" onclick="setTheme('tatami')" title="Tatami"></div>
+      <div class="theme-swatch swatch-steel" data-t="steel" onclick="setTheme('steel')" title="Steel"></div>
+    </div>
+  </div>
+</aside>
+
+<!-- ── MAIN ──────────────────────────────────────────────── -->
+<main class="main">
+
+  <!-- OVERVIEW / DASHBOARD -->
+  <div id="page-dashboard" class="page active">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Overview</h1>
+        <p class="page-subtitle">Your estimated BJJ training snapshot</p>
+      </div>
+    </div>
+    <div class="stat-grid stagger" id="dash-stats"></div>
+    <div class="two-col" style="margin-bottom:22px">
+      <div class="card" style="padding:20px 22px">
+        <div class="section-label" style="margin-bottom:4px">Attendance Rhythm</div>
+        <div id="day-headline" style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:400;margin-bottom:14px;min-height:28px"></div>
+        <div id="day-chart"></div>
+      </div>
+      <div class="card" style="padding:20px 22px">
+        <div class="section-label" style="margin-bottom:4px">Start Time Pattern</div>
+        <div id="hour-headline" style="font-family:'Cormorant Garamond',serif;font-size:22px;font-weight:400;margin-bottom:14px;min-height:28px"></div>
+        <div id="hour-chart"></div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="card" style="padding:20px 22px">
+        <div class="section-label" style="margin-bottom:16px">Belt Eras</div>
+        <div id="dash-belts"></div>
+      </div>
+      <div class="card" style="padding:20px 22px">
+        <div class="section-label" style="margin-bottom:14px">Recent Sessions</div>
+        <div id="recent-sessions"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- GYMS -->
+  <div id="page-gyms" class="page">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Gyms</h1>
+        <p class="page-subtitle">Manage locations and view per-gym analytics</p>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-primary" onclick="openGymModal()">+ Add Gym</button>
+      </div>
+    </div>
+    <div id="gym-list"></div>
+  </div>
+
+  <!-- BELTS -->
+  <div id="page-belts" class="page">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Belt Progression</h1>
+        <p class="page-subtitle">Track your rank journey and training by era</p>
+      </div>
+      <div class="header-right">
+        <button class="btn btn-primary" onclick="openBeltModal()">+ Add Belt</button>
+      </div>
+    </div>
+    <div id="belt-list"></div>
+  </div>
+
+  <!-- YEARS -->
+  <div id="page-years" class="page">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Years</h1>
+        <p class="page-subtitle">Annual training breakdown with per-gym detail</p>
+      </div>
+    </div>
+    <div id="years-table-wrap"></div>
+  </div>
+
+  <!-- SESSIONS -->
+  <div id="page-sessions" class="page">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Sessions</h1>
+        <p class="page-subtitle">Browse and verify every matched training session</p>
+      </div>
+      <div class="header-right" style="gap:8px;align-items:center">
+        <select class="form-select" id="filter-year" style="width:110px" onchange="renderSessions()">
+          <option value="">All years</option>
+        </select>
+        <select class="form-select" id="filter-month" style="width:130px" onchange="renderSessions()">
+          <option value="">All months</option>
+          <option value="0">January</option><option value="1">February</option>
+          <option value="2">March</option><option value="3">April</option>
+          <option value="4">May</option><option value="5">June</option>
+          <option value="6">July</option><option value="7">August</option>
+          <option value="8">September</option><option value="9">October</option>
+          <option value="10">November</option><option value="11">December</option>
+        </select>
+        <select class="form-select" id="filter-gym" style="width:160px" onchange="renderSessions()">
+          <option value="">All gyms</option>
+        </select>
+      </div>
+    </div>
+    <div id="sessions-summary" style="margin-bottom:14px"></div>
+    <div id="sessions-list"></div>
+  </div>
+
+  <!-- DATA -->
+  <div id="page-data" class="page">
+    <div class="page-header">
+      <div>
+        <h1 class="page-title">Data</h1>
+        <p class="page-subtitle">Load your Google Maps Timeline JSON files</p>
+      </div>
+    </div>
+
+    <!-- Export instructions card -->
+    <div class="export-card">
+      <div class="export-card-tabs">
+        <button class="export-tab active" onclick="switchExportTab('android',this)">🤖 Android</button>
+        <button class="export-tab" onclick="switchExportTab('transfer',this)">💻 Get file to this app</button>
+        <button class="export-tab" onclick="switchExportTab('ios',this)">🍎 iPhone</button>
+      </div>
+      <div id="export-android" class="export-tab-content active">
+        <div style="font-size:13px;line-height:1.9;color:var(--text-muted)">
+          <p style="margin-bottom:10px">Open your phone's <strong style="color:var(--text)">Settings</strong> app → <strong style="color:var(--text)">Location</strong> → <strong style="color:var(--text)">Location Services</strong> → <strong style="color:var(--text)">Timeline</strong> → <strong style="color:var(--text)">Export Timeline data</strong> → <strong style="color:var(--text)">Continue</strong> → <strong style="color:var(--text)">Save</strong>.</p>
+          <p>The file saves to your Downloads folder. It may be named <code>Timeline.json</code> or <code>location-history.json</code> depending on your device.</p>
+        </div>
+        <div class="export-note">
+          <strong>Google Takeout no longer works.</strong> In late 2024, Google moved Timeline data from the cloud to on-device storage. Takeout exports now return only encrypted backups — no usable location data. Export directly from your phone instead.<br><br>
+          <strong>Have an old Takeout export?</strong> If you downloaded a JSON file from Google Takeout before the 2024 migration, it will still load and parse correctly here.
+        </div>
+      </div>
+      <div id="export-transfer" class="export-tab-content">
+        <div style="font-size:13px;line-height:1.9;color:var(--text-muted)">
+          <p style="margin-bottom:10px"><strong style="color:var(--text)">Easiest — use this app directly on your phone.</strong> Open this app in your phone's browser, tap the Data tab, and load your <code>Timeline.json</code> straight from your Downloads folder. No transfer needed.</p>
+          <p style="margin-bottom:10px"><strong style="color:var(--text)">Prefer to use a desktop?</strong> Location history files are often 50–100MB+, so email won't work. Best options:</p>
+          <p style="color:var(--text-muted)">
+            <strong style="color:var(--text)">Google Drive / Dropbox</strong> — upload on phone, download on computer.<br>
+            <strong style="color:var(--text)">USB cable</strong> — plug in, copy the file directly.<br>
+            <strong style="color:var(--text)">AirDrop</strong> — instant if you're on Android with a Mac nearby (via Nearby Share) or already on iPhone.
+          </p>
+        </div>
+        <div class="export-note">
+          All processing happens <strong>entirely in your browser</strong> — your location data is never uploaded anywhere.
+        </div>
+      </div>
+      <div id="export-ios" class="export-tab-content">
+        <div style="font-size:13px;line-height:1.9;color:var(--text-muted);margin-bottom:12px">
+          ⚠️ <strong style="color:var(--text)">Heads up — most iPhone users won't have useful data here.</strong> Google Maps Timeline only tracks you if you've had the Google Maps app installed with <em>Always</em> location access enabled for an extended period — ideally years. If that's not you, your export will likely be empty or very sparse.
+        </div>
+        <div style="font-size:13px;line-height:1.9;color:var(--text-muted)">
+          <p style="margin-bottom:10px">If you do have long-running Google Maps location history: open <strong style="color:var(--text)">Google Maps</strong> → tap your <strong style="color:var(--text)">profile picture</strong> → <strong style="color:var(--text)">Your Timeline</strong> → tap the <strong style="color:var(--text)">⋯ menu</strong> (top-right) → <strong style="color:var(--text)">Location and privacy settings</strong> → <strong style="color:var(--text)">Export Timeline data</strong> → <strong style="color:var(--text)">Save to Files</strong>.</p>
+        </div>
+        <div class="export-note">
+          <strong>Google Takeout doesn't work for iPhone either.</strong> Since 2024, Timeline is stored on-device for everyone — Android and iPhone alike. Takeout only returns encrypted backup files now, not usable JSON.
+        </div>
+      </div>
+    </div>
+    <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+      <div class="drop-icon">📂</div>
+      <div class="drop-title">Drop timeline JSON files here</div>
+      <div class="drop-sub">or click to browse · accepts <code style="font-size:10px">Timeline.json</code> or <code style="font-size:10px">location-history.json</code> · load multiple files</div>
+    </div>
+    <input type="file" id="fileInput" accept=".json" multiple>
+    <div id="file-list-wrap"></div>
+    <div id="data-stats-wrap"></div>
+
+    <div class="divider"></div>
+    <div class="section-label" style="margin-bottom:14px">Session Filter Settings</div>
+    <div class="card" style="padding:20px 24px;margin-bottom:6px">
+      <p style="font-size:13px;color:var(--text-muted);margin-bottom:18px;line-height:1.7">
+        Mat Ledger decides whether a detected location visit counts as a training session based on how long it lasted.
+        Visits shorter than the <strong style="color:var(--text)">minimum</strong> are likely GPS noise or quick stops — not real training.
+        Visits longer than the <strong style="color:var(--text)">maximum</strong> are likely the app misreading an all-day location stay.
+        Adjust these if sessions you know happened are missing, or if false matches are appearing.
+        Changes apply immediately and reprocess all loaded data.
+      </p>
+      <div class="form-row" style="max-width:420px">
+        <div class="form-field">
+          <label class="form-label">Minimum session length</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="form-input" type="number" id="cfg-min-dur" min="1" max="120" style="width:80px"
+              value="20" onchange="saveDurSettings()">
+            <span style="font-size:13px;color:var(--text-muted)">minutes</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:5px">Default: 20 min. Raise this to filter out brief drop-ins.</div>
+        </div>
+        <div class="form-field">
+          <label class="form-label">Maximum session length</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input class="form-input" type="number" id="cfg-max-dur" min="60" max="1440" style="width:80px"
+              value="480" onchange="saveDurSettings()">
+            <span style="font-size:13px;color:var(--text-muted)">minutes</span>
+          </div>
+          <div style="font-size:11px;color:var(--text-muted);margin-top:5px">Default: 480 min (8h). Raise for seminars or all-day camps.</div>
+        </div>
+      </div>
+      <div id="dur-feedback" style="font-family:'Space Mono',monospace;font-size:10px;color:var(--green);margin-top:12px;min-height:16px"></div>
+    </div>
+  </div>
+
+</main>
+
+<!-- ── MOBILE BOTTOM NAV ──────────────────────────────── -->
+<nav class="mobile-nav">
+  <div class="mobile-nav-inner">
+    <button class="mobile-nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
+      <svg viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
+      Overview
+    </button>
+    <button class="mobile-nav-item" data-page="gyms" onclick="navigate('gyms')">
+      <svg viewBox="0 0 16 16"><path d="M8 1C5.2 1 3 3.2 3 6c0 4 5 9 5 9s5-5 5-9c0-2.8-2.2-5-5-5zm0 6.5c-.8 0-1.5-.7-1.5-1.5S7.2 4 8 4s1.5.7 1.5 1.5S8.8 7.5 8 7.5z"/></svg>
+      Gyms
+    </button>
+    <button class="mobile-nav-item" data-page="belts" onclick="navigate('belts')">
+      <svg viewBox="0 0 16 16"><path d="M1 4h14M1 8h14M1 12h14"/></svg>
+      Belts
+    </button>
+    <button class="mobile-nav-item" data-page="years" onclick="navigate('years')">
+      <svg viewBox="0 0 16 16"><rect x="1" y="10" width="3" height="5" rx="1"/><rect x="6" y="6" width="3" height="9" rx="1"/><rect x="11" y="2" width="3" height="13" rx="1"/></svg>
+      Years
+    </button>
+    <button class="mobile-nav-item" data-page="sessions" onclick="navigate('sessions')">
+      <svg viewBox="0 0 16 16"><path d="M2 4h12M2 8h8M2 12h10"/></svg>
+      Sessions
+    </button>
+    <button class="mobile-nav-item" data-page="data" onclick="navigate('data')">
+      <svg viewBox="0 0 16 16"><path d="M9 2H4a1 1 0 00-1 1v10a1 1 0 001 1h8a1 1 0 001-1V6L9 2z"/><path d="M9 2v4h4"/></svg>
+      Data
+    </button>
+  </div>
+</nav>
+
+<!-- ── GYM MODAL ──────────────────────────────────────── -->
+<div class="modal-overlay" id="gymModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('gymModal')">✕</button>
+    <div class="modal-title" id="gymModalTitle">Add Gym</div>
+
+    <!-- Location search -->
+    <div class="form-row full" style="margin-bottom:6px">
+      <div class="form-field">
+        <label class="form-label">Search Location <span style="text-transform:none;letter-spacing:0;font-family:Barlow,sans-serif;font-size:10px">— search by name or address to auto-fill coordinates</span></label>
+        <div style="display:flex;gap:6px">
+          <input class="form-input" id="geo-search" placeholder="e.g. Seattle Integrated Martial Arts" onkeydown="if(event.key==='Enter'){event.preventDefault();geocodeSearch()}">
+          <button class="btn btn-ghost" onclick="geocodeSearch()" style="flex-shrink:0;white-space:nowrap">Search</button>
+        </div>
+        <div id="geo-results" class="geo-results"></div>
+      </div>
+    </div>
+    <div class="divider" style="margin:10px 0"></div>
+    <div class="form-row">
+      <div class="form-field" style="flex:2">
+        <label class="form-label">Gym Name *</label>
+        <input class="form-input" id="gym-name" placeholder="e.g. NW Jiu Jitsu Academy">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Color</label>
+        <input type="color" id="gym-color" value="#d4a843">
+      </div>
+    </div>
+    <div class="form-row three">
+      <div class="form-field" style="grid-column:span 2">
+        <label class="form-label">Latitude * <span style="text-transform:none;letter-spacing:0;font-family:Barlow,sans-serif;font-size:10px">— or paste a "lat, lng" pair here to fill both</span></label>
+        <input class="form-input" id="gym-lat" placeholder="47.6062" onpaste="handleCoordPaste(event)">
+      </div>
+      <div class="form-field">
+        <label class="form-label">Longitude *</label>
+        <input class="form-input" id="gym-lng" placeholder="-122.3321">
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="form-field">
+        <label class="form-label">Radius (meters)</label>
+        <input class="form-input" id="gym-radius" value="150" placeholder="150">
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="form-field">
+        <label class="form-label">Google Place ID <span style="text-transform:none;letter-spacing:0;font-family:Barlow,sans-serif;font-size:10px">(optional — highest confidence matching)</span></label>
+        <input class="form-input" id="gym-placeid" placeholder="ChIJj6UmkbpqkFQRtkIjajltHqw">
+      </div>
+    </div>
+    <div class="form-row full">
+      <div class="form-field">
+        <label class="form-label">Keywords <span style="text-transform:none;letter-spacing:0;font-family:Barlow,sans-serif;font-size:10px">(optional — comma-separated, matched against place names)</span></label>
+        <input class="form-input" id="gym-keywords" placeholder="e.g. nw jiu jitsu, gracie seattle">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" onclick="saveGym()">Save Gym</button>
+      <button class="btn btn-ghost" onclick="closeModal('gymModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── BELT MODAL ─────────────────────────────────────── -->
+<div class="modal-overlay" id="beltModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeModal('beltModal')">✕</button>
+    <div class="modal-title" id="beltModalTitle">Add Belt Promotion</div>
+    <div class="form-row">
+      <div class="form-field">
+        <label class="form-label">Belt</label>
+        <select class="form-select" id="belt-name">
+          <option value="White">⬜ White Belt</option>
+          <option value="Blue">🟦 Blue Belt</option>
+          <option value="Purple">🟣 Purple Belt</option>
+          <option value="Brown">🟫 Brown Belt</option>
+          <option value="Black">⬛ Black Belt</option>
+        </select>
+      </div>
+      <div class="form-field">
+        <label class="form-label">Promotion Date *</label>
+        <input class="form-input" type="date" id="belt-date">
+      </div>
+    </div>
+    <div class="form-actions">
+      <button class="btn btn-primary" id="beltSaveBtn" onclick="saveBelt()">Add Belt</button>
+      <button class="btn btn-ghost" onclick="closeModal('beltModal')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ══════════════════════════════════════════════════════
+//  STATE
+// ══════════════════════════════════════════════════════
+const S = {
+  gyms: [],
+  belts: [],
+  loadedFiles: [],
+  allVisits: [],
+  sessions: [],
+  fileVisits: {},   // keyed by "name|size" — stores raw visits per file for removal
+  theme: 'night',
+  editGymId: null,
+  editBeltId: null,
+  minDur: 20,
+  maxDur: 480
+};
+
+// ══════════════════════════════════════════════════════
+//  PERSISTENCE
+// ══════════════════════════════════════════════════════
+const CFG_KEY = 'bjj-location-analytics-config-v1';
+
+function saveConfig() {
+  try {
+    localStorage.setItem(CFG_KEY, JSON.stringify({
+      gyms: S.gyms, belts: S.belts, theme: S.theme,
+      minDur: S.minDur, maxDur: S.maxDur
+    }));
+  } catch(e) {}
+}
+
+function loadConfig() {
+  try {
+    const raw = localStorage.getItem(CFG_KEY);
+    if (!raw) return;
+    const c = JSON.parse(raw);
+    S.gyms   = c.gyms   || [];
+    S.belts  = c.belts  || [];
+    S.theme  = c.theme  || 'night';
+    S.minDur = c.minDur ?? 20;
+    S.maxDur = c.maxDur ?? 480;
+  } catch(e) {}
+}
+
+// ══════════════════════════════════════════════════════
+//  UTILS
+// ══════════════════════════════════════════════════════
+let _uid = 0;
+const uid = () => `${Date.now()}_${++_uid}`;
+
+function parseLatLng(str) {
+  if (!str) return null;
+  // "47.6022167°, -122.3322819°"
+  let m = str.match(/([-\d.]+)°[,\s]+([-\d.]+)°/);
+  if (m) return { lat: +m[1], lng: +m[2] };
+  // plain "47.6,-122.3"
+  const p = str.split(',');
+  if (p.length >= 2) {
+    const la = +p[0].trim(), lo = +p[1].trim();
+    if (isFinite(la) && isFinite(lo)) return { lat: la, lng: lo };
+  }
+  return null;
+}
+
+function parseTimestamp(ts) {
+  if (!ts) return null;
+  const n = +ts;
+  if (isFinite(n) && n > 1e10) return new Date(n); // ms integer
+  return new Date(ts); // ISO string
+}
+
+function haversine(la1, lo1, la2, lo2) {
+  const R = 6371000, r = Math.PI / 180;
+  const dLa = (la2 - la1) * r, dLo = (lo2 - lo1) * r;
+  const a = Math.sin(dLa/2)**2 + Math.cos(la1*r) * Math.cos(la2*r) * Math.sin(dLo/2)**2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+}
+
+function fmtDur(min) {
+  if (min < 60) return `${Math.round(min)}m`;
+  const h = Math.floor(min/60), m = Math.round(min%60);
+  return m ? `${h}h ${m}m` : `${h}h`;
+}
+
+function fmtDate(d) {
+  return d.toLocaleDateString('en-US', { year:'numeric', month:'short', day:'numeric' });
+}
+
+function fmtDateShort(d) {
+  return d.toLocaleDateString('en-US', { month:'short', day:'numeric', year:'2-digit' });
+}
+
+function fmtTime(d) {
+  return d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit', hour12:true });
+}
+
+function daysBetween(a, b) {
+  return Math.abs(Math.round((b - a) / 86400000));
+}
+
+const BELT_DOT_COLORS = {
+  White:'#d0ccbc', Blue:'#1565c0', Purple:'#7b2d8b', Brown:'#6b3d1e', Black:'#1a1a1a'
+};
+
+// ══════════════════════════════════════════════════════
+//  PARSING ENGINE
+// ══════════════════════════════════════════════════════
+function parseFile(json) {
+  const visits = [];
+
+  // ── semanticSegments ──
+  if (Array.isArray(json.semanticSegments)) {
+    for (const seg of json.semanticSegments) {
+      const start = parseTimestamp(seg.startTime);
+      const end   = parseTimestamp(seg.endTime);
+      if (!start || !end || isNaN(start) || isNaN(end)) continue;
+
+      if (seg.visit?.topCandidate) {
+        const tc = seg.visit.topCandidate;
+        const ll = tc.placeLocation?.latLng ? parseLatLng(tc.placeLocation.latLng) : null;
+        visits.push({
+          type: 'visit',
+          startTime: start,
+          endTime: end,
+          placeId: tc.placeId || null,
+          lat: ll?.lat ?? null,
+          lng: ll?.lng ?? null,
+          probability: seg.visit.probability ?? null,
+          placeName: null,
+          address: null
+        });
+      } else if (Array.isArray(seg.timelinePath) && seg.timelinePath.length >= 2) {
+        const points = seg.timelinePath
+          .map(p => { const ll = parseLatLng(p.point); return ll ? { ...ll, time: parseTimestamp(p.time) } : null; })
+          .filter(Boolean);
+        if (points.length >= 2) {
+          visits.push({ type: 'path', startTime: start, endTime: end, points });
+        }
+      }
+    }
+  }
+
+  // ── timelineObjects (older format) ──
+  if (Array.isArray(json.timelineObjects)) {
+    for (const obj of json.timelineObjects) {
+      if (!obj.placeVisit) continue;
+      const pv  = obj.placeVisit;
+      const loc = pv.location || {};
+      const dur = pv.duration || {};
+      const start = parseTimestamp(dur.startTimestampMs || dur.startTimestamp);
+      const end   = parseTimestamp(dur.endTimestampMs   || dur.endTimestamp);
+      if (!start || !end || isNaN(start) || isNaN(end)) continue;
+      visits.push({
+        type: 'visit',
+        startTime: start,
+        endTime: end,
+        placeId: loc.placeId || null,
+        lat: loc.latitudeE7  != null ? loc.latitudeE7  / 1e7 : null,
+        lng: loc.longitudeE7 != null ? loc.longitudeE7 / 1e7 : null,
+        placeName: loc.name    || null,
+        address:   loc.address || null,
+        probability: null
+      });
+    }
+  }
+
+  return visits;
+}
+
+// ══════════════════════════════════════════════════════
+//  MATCHING
+// ══════════════════════════════════════════════════════
+function matchesGym(visit, gym) {
+  // 1. Place ID (highest confidence)
+  if (gym.placeId && visit.placeId && gym.placeId === visit.placeId) return true;
+
+  // 2. Coordinate radius — visit segments
+  if (visit.type === 'visit' && visit.lat != null && visit.lng != null) {
+    if (haversine(visit.lat, visit.lng, gym.lat, gym.lng) <= gym.radius) return true;
+  }
+
+  // 3. Keywords — match against place name / address
+  if (gym.keywords) {
+    const kws = gym.keywords.split(',').map(k => k.trim().toLowerCase()).filter(Boolean);
+    const hay = [visit.placeName || '', visit.address || ''].join(' ').toLowerCase();
+    if (kws.some(k => k && hay.includes(k))) return true;
+  }
+
+  // 4. Path dwell — require 2+ consecutive points within radius spanning ≥15 min
+  if (visit.type === 'path' && visit.points) {
+    let inPoints = [];
+    for (const p of visit.points) {
+      if (p.lat != null && haversine(p.lat, p.lng, gym.lat, gym.lng) <= gym.radius) {
+        inPoints.push(p);
+      }
+    }
+    if (inPoints.length >= 2) {
+      const span = (inPoints[inPoints.length-1].time - inPoints[0].time) / 60000;
+      if (span >= 15) return true;
+    }
+  }
+
+  return false;
+}
+
+function recomputeSessions() {
+  // Score each visit: visit-type with placeId = 3, visit-type = 2, path = 1
+  function visitScore(v) {
+    if (v.type === 'visit' && v.placeId) return 3;
+    if (v.type === 'visit') return 2;
+    return 1;
+  }
+
+  // Collect raw candidates (gym + visit pairs)
+  const candidates = [];
+  for (const v of S.allVisits) {
+    const durMin = (v.endTime - v.startTime) / 60000;
+    if (durMin < S.minDur || durMin > S.maxDur) continue;
+    for (const gym of S.gyms) {
+      if (!matchesGym(v, gym)) continue;
+      candidates.push({
+        startTime: v.startTime,
+        endTime: v.endTime,
+        durationMinutes: durMin,
+        gymId: gym.id,
+        gymName: gym.name,
+        gymColor: gym.color,
+        year: v.startTime.getFullYear(),
+        beltId: getBeltForDate(v.startTime),
+        _score: visitScore(v)
+      });
+      break; // one gym per visit
+    }
+  }
+
+  // Sort by score desc so best candidates are kept when deduplicating
+  candidates.sort((a, b) => b._score - a._score || b.durationMinutes - a.durationMinutes);
+
+  // Deduplicate: for same gym, reject any candidate whose time window
+  // overlaps (or is within 60 min of) an already-accepted session
+  const accepted = [];
+  for (const c of candidates) {
+    const overlap = accepted.some(a =>
+      a.gymId === c.gymId &&
+      c.startTime < new Date(a.endTime.getTime() + 60 * 60000) &&
+      c.endTime   > new Date(a.startTime.getTime() - 60 * 60000)
+    );
+    if (!overlap) accepted.push(c);
+  }
+
+  accepted.sort((a, b) => b.startTime - a.startTime);
+  S.sessions = accepted;
+}
+
+function getBeltForDate(date) {
+  const sorted = [...S.belts].sort((a, b) => new Date(a.date) - new Date(b.date));
+  let id = null;
+  for (const b of sorted) {
+    if (new Date(b.date) <= date) id = b.id; else break;
+  }
+  return id;
+}
+
+// ══════════════════════════════════════════════════════
+//  ANALYTICS
+// ══════════════════════════════════════════════════════
+function overallStats() {
+  const s = S.sessions;
+  return {
+    total: s.length,
+    hours: s.reduce((a, x) => a + x.durationMinutes, 0) / 60,
+    years: s.length ? new Set(s.map(x => x.year)).size : 0,
+    gyms: S.gyms.length
+  };
+}
+
+function yearlyStats() {
+  const m = {};
+  for (const s of S.sessions) {
+    if (!m[s.year]) m[s.year] = { sessions: 0, minutes: 0 };
+    m[s.year].sessions++;
+    m[s.year].minutes += s.durationMinutes;
+  }
+  return m;
+}
+
+function gymStats(gymId) {
+  const ss = S.sessions.filter(s => s.gymId === gymId);
+  const mins = ss.reduce((a, s) => a + s.durationMinutes, 0);
+  const byYear = {};
+  for (const s of ss) {
+    if (!byYear[s.year]) byYear[s.year] = { sessions: 0, minutes: 0 };
+    byYear[s.year].sessions++;
+    byYear[s.year].minutes += s.durationMinutes;
+  }
+  return {
+    total: ss.length,
+    hours: mins / 60,
+    avg: ss.length ? mins / ss.length : 0,
+    first: ss.length ? ss[ss.length-1].startTime : null,
+    last: ss.length ? ss[0].startTime : null,
+    byYear
+  };
+}
+
+function beltStats(beltId) {
+  const ss = S.sessions.filter(s => s.beltId === beltId);
+  return {
+    total: ss.length,
+    hours: ss.reduce((a, s) => a + s.durationMinutes, 0) / 60,
+    gyms: new Set(ss.map(s => s.gymId)).size
+  };
+}
+
+function attendanceByDay() {
+  const days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  const counts = {Sun:0,Mon:0,Tue:0,Wed:0,Thu:0,Fri:0,Sat:0};
+  for (const s of S.sessions) counts[days[s.startTime.getDay()]]++;
+  return { days, counts };
+}
+
+function attendanceByHour() {
+  // Group into 1-hour buckets, return top 6
+  const counts = {};
+  for (const s of S.sessions) {
+    const h = s.startTime.getHours();
+    counts[h] = (counts[h] || 0) + 1;
+  }
+  return counts;
+}
+
+function topGymAndLongest() {
+  let topGym = null, topCount = 0;
+  for (const g of S.gyms) {
+    const n = S.sessions.filter(s => s.gymId === g.id).length;
+    if (n > topCount) { topCount = n; topGym = g; }
+  }
+  let longest = null;
+  for (const s of S.sessions) {
+    if (!longest || s.durationMinutes > longest.durationMinutes) longest = s;
+  }
+  return { topGym, topCount, longest };
+}
+
+function yearDetailStats() {
+  // Returns array of {year, sessions, minutes, gyms: [{gymId, gymName, gymColor, sessions, minutes}]}
+  const yearMap = {};
+  for (const s of S.sessions) {
+    if (!yearMap[s.year]) yearMap[s.year] = { year: s.year, sessions: 0, minutes: 0, gymMap: {} };
+    yearMap[s.year].sessions++;
+    yearMap[s.year].minutes += s.durationMinutes;
+    if (!yearMap[s.year].gymMap[s.gymId]) yearMap[s.year].gymMap[s.gymId] = { gymId: s.gymId, gymName: s.gymName, gymColor: s.gymColor, sessions: 0, minutes: 0 };
+    yearMap[s.year].gymMap[s.gymId].sessions++;
+    yearMap[s.year].gymMap[s.gymId].minutes += s.durationMinutes;
+  }
+  return Object.values(yearMap)
+    .sort((a, b) => b.year - a.year)
+    .map(y => ({ ...y, gyms: Object.values(y.gymMap).sort((a,b) => b.sessions - a.sessions) }));
+}
+
+function fmtHourLabel(h) {
+  if (h === 0) return '12:00 AM';
+  if (h < 12) return `${h}:00 AM`;
+  if (h === 12) return '12:00 PM';
+  return `${h-12}:00 PM`;
+}
+
+// ══════════════════════════════════════════════════════
+//  NAVIGATION & THEME
+// ══════════════════════════════════════════════════════
+function navigate(tab) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById(`page-${tab}`).classList.add('active');
+  document.querySelectorAll(`[data-page="${tab}"]`).forEach(el => el.classList.add('active'));
+  document.querySelector('.main').scrollTo(0, 0);
+  if (tab === 'dashboard') renderDashboard();
+  else if (tab === 'gyms')     renderGyms();
+  else if (tab === 'belts')    renderBelts();
+  else if (tab === 'years')    renderYears();
+  else if (tab === 'sessions') renderSessions();
+  else if (tab === 'data')     renderData();
+}
+
+// ══════════════════════════════════════════════════════
+//  GEOCODING (Nominatim / OpenStreetMap — no key needed)
+// ══════════════════════════════════════════════════════
+let _geoTimer = null;
+
+async function nominatimFetch(q) {
+  const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(q)}&limit=6&addressdetails=1&namedetails=1`;
+  const r = await fetch(url, { headers: { 'Accept-Language': 'en' } });
+  return r.json();
+}
+
+async function geocodeSearch() {
+  const q = document.getElementById('geo-search').value.trim();
+  const res = document.getElementById('geo-results');
+  if (!q) return;
+
+  res.innerHTML = `<div class="geo-status">Searching…</div>`;
+  res.classList.add('show');
+
+  try {
+    // Strategy 1: search as-is
+    let data = await nominatimFetch(q);
+
+    // Strategy 2: if nothing, try appending "USA" to help with business names
+    if (!data.length) {
+      data = await nominatimFetch(q + ' USA');
+    }
+
+    if (!data.length) {
+      const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(q)}`;
+      res.innerHTML = `
+        <div class="geo-status" style="padding:12px;line-height:1.8;font-size:11px">
+          <div style="color:var(--accent);font-weight:600;margin-bottom:6px">⚠ Not found in OpenStreetMap</div>
+          <div style="color:var(--text-muted)">Many gyms aren't in OSS map data. Get the coordinates from Google Maps instead:</div>
+          <ol style="margin:8px 0 8px 16px;color:var(--text-muted)">
+            <li>Open <a href="${mapsUrl}" target="_blank" style="color:var(--primary);text-decoration:underline">Google Maps → search "${q}"</a></li>
+            <li>Right-click the pin → click the coordinates at the top</li>
+            <li>Paste them into the Latitude / Longitude fields below</li>
+          </ol>
+          <div style="color:var(--text-muted)">Or try searching by the street address instead.</div>
+        </div>`;
+      return;
+    }
+
+    res.innerHTML = data.map((item, i) => {
+      const name = item.namedetails?.name || item.display_name.split(',')[0];
+      const addr = item.display_name;
+      return `<div class="geo-result-item" onclick="selectGeoResult(${i})" data-lat="${item.lat}" data-lng="${item.lon}" data-name="${name.replace(/"/g,'&quot;')}" data-addr="${addr.replace(/"/g,'&quot;')}">
+        <div class="geo-result-name">${name}</div>
+        <div class="geo-result-addr">${addr}</div>
+      </div>`;
+    }).join('');
+  } catch(e) {
+    res.innerHTML = `<div class="geo-status" style="color:var(--accent)">Search failed — check your connection and try again.</div>`;
+  }
+}
+
+function selectGeoResult(idx) {
+  const items = document.querySelectorAll('#geo-results .geo-result-item');
+  const item  = items[idx];
+  if (!item) return;
+
+  const lat  = +item.dataset.lat;
+  const lng  = +item.dataset.lng;
+  const name = item.dataset.name;
+
+  document.getElementById('gym-lat').value = lat.toFixed(6);
+  document.getElementById('gym-lng').value = lng.toFixed(6);
+
+  // Auto-fill name if empty
+  if (!document.getElementById('gym-name').value.trim()) {
+    document.getElementById('gym-name').value = name;
+  }
+
+  // Show a success confirmation in place of results
+  document.getElementById('geo-results').innerHTML =
+    `<div class="geo-status" style="color:var(--green)">✓ Location set — ${lat.toFixed(5)}, ${lng.toFixed(5)}</div>`;
+
+  document.getElementById('geo-search').value = name;
+}
+
+function handleCoordPaste(e) {
+  const text = (e.clipboardData || window.clipboardData).getData('text').trim();
+  // Match a coordinate pair: two numbers separated by comma/space, with optional degree symbols
+  const m = text.match(/^(-?\d+\.?\d*)[°\s]*,\s*(-?\d+\.?\d*)/);
+  if (m) {
+    e.preventDefault();
+    document.getElementById('gym-lat').value = parseFloat(m[1]).toFixed(6);
+    document.getElementById('gym-lng').value = parseFloat(m[2]).toFixed(6);
+    // Flash both fields green briefly
+    ['gym-lat','gym-lng'].forEach(id => {
+      const el = document.getElementById(id);
+      el.style.borderColor = 'var(--green)';
+      setTimeout(() => el.style.borderColor = '', 1200);
+    });
+  }
+  // If it doesn't match a pair, let the normal paste happen (just a single number)
+}
+
+function setTheme(t) {
+  S.theme = t;
+  document.documentElement.setAttribute('data-theme', t);
+  document.querySelectorAll('.theme-swatch').forEach(s => s.classList.toggle('active', s.dataset.t === t));
+  saveConfig();
+}
+
+// ══════════════════════════════════════════════════════
+//  MODALS
+// ══════════════════════════════════════════════════════
+function openModal(id)  { document.getElementById(id).classList.add('open');    }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+
+document.querySelectorAll('.modal-overlay').forEach(el => {
+  el.addEventListener('click', e => { if (e.target === el) el.classList.remove('open'); });
+});
+
+function openGymModal(id = null) {
+  S.editGymId = id;
+  document.getElementById('gymModalTitle').textContent = id ? 'Edit Gym' : 'Add Gym';
+  const g = id ? S.gyms.find(x => x.id === id) : null;
+  document.getElementById('gym-name').value     = g?.name     || '';
+  document.getElementById('gym-lat').value      = g?.lat      || '';
+  document.getElementById('gym-lng').value      = g?.lng      || '';
+  document.getElementById('gym-radius').value   = g?.radius   || 150;
+  document.getElementById('gym-placeid').value  = g?.placeId  || '';
+  document.getElementById('gym-keywords').value = g?.keywords || '';
+  document.getElementById('gym-color').value    = g?.color    || '#d4a843';
+  // Reset geocoder
+  document.getElementById('geo-search').value = '';
+  const r = document.getElementById('geo-results');
+  r.innerHTML = '';
+  r.classList.remove('show');
+  openModal('gymModal');
+}
+
+function openBeltModal(id = null) {
+  S.editBeltId = id;
+  const b = id ? S.belts.find(x => x.id === id) : null;
+  document.getElementById('beltModalTitle').textContent = id ? 'Edit Belt' : 'Add Belt Promotion';
+  document.getElementById('beltSaveBtn').textContent    = id ? 'Save Changes' : 'Add Belt';
+  document.getElementById('belt-name').value = b?.name || 'White';
+  document.getElementById('belt-date').value = b?.date || new Date().toISOString().slice(0,10);
+  openModal('beltModal');
+}
+
+// ══════════════════════════════════════════════════════
+//  GYM CRUD
+// ══════════════════════════════════════════════════════
+function saveGym() {
+  const name    = document.getElementById('gym-name').value.trim();
+  const lat     = parseFloat(document.getElementById('gym-lat').value);
+  const lng     = parseFloat(document.getElementById('gym-lng').value);
+  const radius  = parseFloat(document.getElementById('gym-radius').value) || 150;
+  const placeId = document.getElementById('gym-placeid').value.trim()  || null;
+  const keywords= document.getElementById('gym-keywords').value.trim() || null;
+  const color   = document.getElementById('gym-color').value;
+
+  if (!name || !isFinite(lat) || !isFinite(lng)) {
+    alert('Please fill in the gym name, latitude, and longitude.'); return;
+  }
+
+  if (S.editGymId) {
+    const idx = S.gyms.findIndex(g => g.id === S.editGymId);
+    if (idx !== -1) S.gyms[idx] = { ...S.gyms[idx], name, lat, lng, radius, placeId, keywords, color };
+  } else {
+    S.gyms.push({ id: uid(), name, lat, lng, radius, placeId, keywords, color });
+  }
+  saveConfig();
+  recomputeSessions();
+  closeModal('gymModal');
+  renderGyms();
+  renderDashboard();
+}
+
+function deleteGym(id) {
+  if (!confirm('Remove this gym and its matched sessions?')) return;
+  S.gyms = S.gyms.filter(g => g.id !== id);
+  saveConfig();
+  recomputeSessions();
+  renderGyms();
+  renderDashboard();
+}
+
+// ══════════════════════════════════════════════════════
+//  BELT CRUD
+// ══════════════════════════════════════════════════════
+function saveBelt() {
+  const name = document.getElementById('belt-name').value;
+  const date = document.getElementById('belt-date').value;
+  if (!date) { alert('Please enter a promotion date.'); return; }
+
+  if (S.editBeltId) {
+    // Edit mode — update in place
+    const idx = S.belts.findIndex(b => b.id === S.editBeltId);
+    if (idx !== -1) S.belts[idx] = { ...S.belts[idx], name, date };
+  } else {
+    // Add mode — check for duplicate belt name
+    if (S.belts.some(b => b.name === name)) {
+      if (!confirm(`You already have a ${name} Belt entry. Replace it?`)) return;
+      S.belts = S.belts.filter(b => b.name !== name);
+    }
+    S.belts.push({ id: uid(), name, date });
+  }
+
+  S.belts.sort((a, b) => new Date(a.date) - new Date(b.date));
+  saveConfig();
+  recomputeSessions();
+  closeModal('beltModal');
+  renderBelts();
+  renderDashboard();
+}
+
+function deleteBelt(id) {
+  if (!confirm('Remove this belt entry?')) return;
+  S.belts = S.belts.filter(b => b.id !== id);
+  saveConfig();
+  recomputeSessions();
+  renderBelts();
+  renderDashboard();
+}
+
+// ══════════════════════════════════════════════════════
+//  FILE HANDLING
+// ══════════════════════════════════════════════════════
+document.getElementById('fileInput').addEventListener('change', function() {
+  handleFiles(Array.from(this.files));
+  this.value = '';
+});
+
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover',  e => { e.preventDefault(); dropZone.classList.add('drag-over'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault();
+  dropZone.classList.remove('drag-over');
+  handleFiles(Array.from(e.dataTransfer.files).filter(f => f.name.endsWith('.json')));
+});
+
+async function handleFiles(files) {
+  for (const file of files) {
+    if (S.loadedFiles.find(f => f.name === file.name && f.size === file.size)) continue;
+    try {
+      const json  = JSON.parse(await file.text());
+      const visits = parseFile(json);
+      const segs   = (json.semanticSegments?.length || 0) + (json.timelineObjects?.length || 0);
+      S.loadedFiles.push({ name: file.name, size: file.size, visits: visits.length, segs });
+      S.allVisits.push(...visits);
+      // Store per-file visits so individual files can be removed
+      S.fileVisits = S.fileVisits || {};
+      S.fileVisits[file.name + '|' + file.size] = visits;
+    } catch(e) {
+      S.loadedFiles.push({ name: file.name, size: file.size, error: String(e.message || e) });
+    }
+  }
+  recomputeSessions();
+  renderData();
+  renderDashboard();
+}
+
+function removeFile(idx) {
+  const f = S.loadedFiles[idx];
+  if (!f) return;
+  const key = f.name + '|' + f.size;
+  S.loadedFiles.splice(idx, 1);
+  delete S.fileVisits[key];
+  S.allVisits = Object.values(S.fileVisits).flat();
+  recomputeSessions();
+  renderData();
+  renderDashboard();
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER — DASHBOARD / OVERVIEW
+// ══════════════════════════════════════════════════════
+function renderDashboard() {
+  const st = overallStats();
+  const { topGym, topCount, longest } = topGymAndLongest();
+
+  // ── stat cards ──
+  document.getElementById('dash-stats').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">Tracked Sessions</div>
+      <div class="stat-value">${st.total}</div>
+      <div class="stat-sub">${S.loadedFiles.length} file${S.loadedFiles.length!==1?'s':''} loaded · ${S.gyms.length} gym${S.gyms.length!==1?'s':''}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Time on the Mats</div>
+      <div class="stat-value" style="font-size:22px;padding-top:4px">${st.total>0 ? fmtDur(st.hours*60) : '—'}</div>
+      <div class="stat-sub">Total across all gyms · ${(st.hours/8).toFixed(0)} work-days</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Top Gym</div>
+      <div class="stat-value" style="font-size:${topGym&&topGym.name.length>14?'16px':'20px'};padding-top:4px;line-height:1.2">${topGym ? topGym.name : '—'}</div>
+      <div class="stat-sub">${topGym ? topCount+' sessions total' : 'No gyms configured'}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Longest Visit</div>
+      <div class="stat-value" style="font-size:22px;padding-top:4px">${longest ? fmtDur(longest.durationMinutes) : '—'}</div>
+      <div class="stat-sub">${longest ? longest.gymName+' · '+fmtDate(longest.startTime) : 'No sessions yet'}</div>
+    </div>`;
+
+  // ── attendance by day ──
+  const { days, counts } = attendanceByDay();
+  const maxDay = Math.max(...Object.values(counts), 1);
+  const busiest = days.reduce((a,d) => counts[d]>counts[a] ? d : a, days[0]);
+  document.getElementById('day-headline').textContent =
+    st.total > 0 ? `${busiest} is your busiest day` : 'Load data to see patterns';
+  document.getElementById('day-chart').innerHTML = days.map(d => {
+    const pct = (counts[d]/maxDay)*100;
+    const isBest = d === busiest;
+    return `<div class="rhythm-row">
+      <span class="rhythm-label">${d}</span>
+      <div class="rhythm-bar-track">
+        <div class="rhythm-bar-fill${isBest?'':' dim'}" style="width:${pct}%"></div>
+      </div>
+      <span class="rhythm-count">${counts[d].toLocaleString()} sessions</span>
+    </div>`;
+  }).join('');
+
+  // ── start time pattern ──
+  const hourCounts = attendanceByHour();
+  const hourEntries = Object.entries(hourCounts).sort((a,b) => b[1]-a[1]).slice(0, 6);
+  const maxHour = hourEntries.length ? hourEntries[0][1] : 1;
+  const peakHour = hourEntries.length ? fmtHourLabel(+hourEntries[0][0]) : null;
+  document.getElementById('hour-headline').textContent =
+    peakHour ? `${peakHour} is your peak start window` : 'Load data to see patterns';
+  document.getElementById('hour-chart').innerHTML = hourEntries.map(([h, n]) => {
+    const pct = (n/maxHour)*100;
+    const isTop = +h === +hourEntries[0][0];
+    return `<div class="rhythm-row">
+      <span class="rhythm-label" style="width:56px">${fmtHourLabel(+h)}</span>
+      <div class="rhythm-bar-track">
+        <div class="rhythm-bar-fill${isTop?'':' dim'}" style="width:${pct}%"></div>
+      </div>
+      <span class="rhythm-count">${n.toLocaleString()} sessions</span>
+    </div>`;
+  }).join('');
+
+  // ── recent sessions ──
+  const recent = S.sessions.slice(0, 10);
+  document.getElementById('recent-sessions').innerHTML = recent.length
+    ? recent.map(s => `
+        <div class="session-row">
+          <span class="session-date">${fmtDateShort(s.startTime)}</span>
+          <span class="session-gym" style="border-left-color:${s.gymColor}">${s.gymName}</span>
+          <span class="session-times">
+            <span>↓ ${fmtTime(s.startTime)}</span>
+            <span>↑ ${fmtTime(s.endTime)}</span>
+          </span>
+          <span class="session-dur">${fmtDur(s.durationMinutes)}</span>
+        </div>`).join('')
+    : `<div style="padding:16px 0;color:var(--text-muted);font-size:12px">No matched sessions yet.</div>`;
+
+  // ── belt era tiles ──
+  const asc = [...S.belts].sort((a,b) => new Date(a.date)-new Date(b.date));
+  if (!asc.length) {
+    document.getElementById('dash-belts').innerHTML =
+      `<div style="color:var(--text-muted);font-size:13px">No belts added — visit the <strong>Belts</strong> page.</div>`;
+    return;
+  }
+  const now = new Date();
+  // Build era info in chronological order, then display newest-first
+  const beltEras = asc.map((b, i) => {
+    const start     = new Date(b.date);
+    const end       = i < asc.length-1 ? new Date(asc[i+1].date) : now;
+    const isCurrent = i === asc.length-1;
+    const days      = daysBetween(start, end);
+    const bs        = beltStats(b.id);
+    return { b, start, end, isCurrent, days, bs };
+  });
+  document.getElementById('dash-belts').innerHTML = [...beltEras].reverse().map(({ b, start, end, isCurrent, days, bs }) => {
+    const months = (days / 30.4).toFixed(0);
+    const dotColor = BELT_DOT_COLORS[b.name] || '#888';
+    return `
+    <div style="border:1px solid ${isCurrent ? 'var(--border-bright)' : 'var(--border)'};border-radius:7px;padding:14px 16px;margin-bottom:10px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+      <div style="display:flex;align-items:center;gap:9px;min-width:130px;flex:1">
+        <span class="belt-pip ${b.name}"></span>
+        <div>
+          <div style="font-family:'Cormorant Garamond',serif;font-size:17px;font-weight:600;display:flex;align-items:center;gap:7px">
+            ${b.name}${isCurrent ? ' <span class="badge badge-primary" style="font-size:8px">Current</span>' : ''}
+          </div>
+          <div style="font-family:'Space Mono',monospace;font-size:8px;color:var(--text-muted);margin-top:1px">${months}mo · ${days.toLocaleString()}d${isCurrent ? ' &amp; counting' : ''}</div>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <div style="font-family:'Space Mono',monospace;font-size:22px;font-weight:700;color:var(--primary);line-height:1">${fmtDur(bs.hours * 60)}</div>
+        <div style="font-family:'Space Mono',monospace;font-size:9px;color:var(--text-muted);margin-top:2px">${bs.total} sessions · ${bs.total > 0 ? fmtDur((bs.hours * 60) / bs.total) : '—'} avg</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER — YEARS
+// ══════════════════════════════════════════════════════
+function renderYears() {
+  const el = document.getElementById('years-table-wrap');
+  const rows = yearDetailStats();
+  if (!rows.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No data yet</div><div class="empty-text">Load your Google Maps Timeline JSON file and configure your gyms to see yearly breakdowns.</div></div>`;
+    return;
+  }
+  const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  el.innerHTML = `<div class="years-table-wrap-inner"><table class="years-table">
+    <thead><tr>
+      <th style="width:70px">Year</th>
+      <th style="width:80px">Sessions</th>
+      <th style="width:100px">Mat Time</th>
+      <th>Gym Breakdown</th>
+    </tr></thead>
+    <tbody>${rows.map(r => {
+      const gymLines = r.gyms.map(g =>
+        `<span style="display:inline-flex;align-items:center;gap:5px;margin-right:14px;white-space:nowrap">
+          <span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:${g.gymColor};flex-shrink:0"></span>
+          <strong>${g.gymName}</strong>: ${g.sessions} visit${g.sessions!==1?'s':''} / ${fmtDur(g.minutes)}
+        </span>`
+      ).join('');
+      return `<tr>
+        <td><span class="year-num">${r.year}</span></td>
+        <td><span class="year-sessions-big">${r.sessions}</span></td>
+        <td><span class="year-hours">${fmtDur(r.minutes)}</span></td>
+        <td><div class="gym-breakdown-line">${gymLines}</div></td>
+      </tr>`;
+    }).join('')}
+    </tbody>
+  </table></div>`;
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER — SESSIONS
+// ══════════════════════════════════════════════════════
+function renderSessions() {
+  // Populate year filter
+  const yearSel = document.getElementById('filter-year');
+  const gymSel  = document.getElementById('filter-gym');
+  const curYear = yearSel.value;
+  const curGym  = gymSel.value;
+
+  // Rebuild year options
+  const allYears = [...new Set(S.sessions.map(s => s.year))].sort((a,b) => b-a);
+  yearSel.innerHTML = `<option value="">All years</option>` +
+    allYears.map(y => `<option value="${y}"${y==curYear?'selected':''}>${y}</option>`).join('');
+
+  // Rebuild gym options
+  gymSel.innerHTML = `<option value="">All gyms</option>` +
+    S.gyms.map(g => `<option value="${g.id}"${g.id===curGym?'selected':''}>${g.name}</option>`).join('');
+
+  const selYear  = yearSel.value ? +yearSel.value : null;
+  const selMonth = document.getElementById('filter-month').value !== '' ? +document.getElementById('filter-month').value : null;
+  const selGym   = gymSel.value || null;
+
+  let filtered = S.sessions;
+  if (selYear  !== null) filtered = filtered.filter(s => s.year === selYear);
+  if (selMonth !== null) filtered = filtered.filter(s => s.startTime.getMonth() === selMonth);
+  if (selGym   !== null) filtered = filtered.filter(s => s.gymId === selGym);
+
+  const totalMins = filtered.reduce((a,s) => a + s.durationMinutes, 0);
+  const avgMins   = filtered.length ? totalMins / filtered.length : 0;
+
+  const sumEl = document.getElementById('sessions-summary');
+  sumEl.innerHTML = filtered.length ? `
+    <div class="sessions-summary-bar">
+      <div class="ssb-item"><span class="ssb-label">Sessions</span><span class="ssb-value">${filtered.length}</span></div>
+      <div class="ssb-item"><span class="ssb-label">Mat Time</span><span class="ssb-value">${fmtDur(totalMins)}</span></div>
+      <div class="ssb-item"><span class="ssb-label">Avg Session</span><span class="ssb-value">${fmtDur(avgMins)}</span></div>
+      <div class="ssb-item"><span class="ssb-label">Gyms</span><span class="ssb-value">${new Set(filtered.map(s=>s.gymId)).size}</span></div>
+    </div>` : '';
+
+  const listEl = document.getElementById('sessions-list');
+  if (!filtered.length) {
+    listEl.innerHTML = `<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-title">No sessions found</div><div class="empty-text">Try adjusting the filters above, or load more timeline data.</div></div>`;
+    return;
+  }
+
+  // Belt name lookup
+  const beltById = {};
+  S.belts.forEach(b => beltById[b.id] = b.name);
+
+  const MONTH_NAMES = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const DOW = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  listEl.innerHTML = `
+    <div class="sessions-header-row">
+      <span>Date</span><span>Time</span><span>Gym</span><span>Duration</span><span>Belt</span><span style="text-align:right">Total</span>
+    </div>` +
+    filtered.map(s => {
+      const d   = s.startTime;
+      const bName = s.beltId && beltById[s.beltId] ? beltById[s.beltId] : '—';
+      const barPct = Math.min(100, (s.durationMinutes / 180) * 100); // 3h = full bar
+      return `<div class="session-full-row">
+        <span class="sf-date">${DOW[d.getDay()]} ${MONTH_NAMES[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}</span>
+        <span class="sf-times">
+          <span><span class="lbl">IN</span>${fmtTime(s.startTime)}</span>
+          <span><span class="lbl">OUT</span>${fmtTime(s.endTime)}</span>
+        </span>
+        <span class="sf-gym">
+          <span class="sf-gym-dot" style="background:${s.gymColor}"></span>
+          ${s.gymName}
+        </span>
+        <span class="sf-bar-wrap"><div class="sf-bar-track"><div class="sf-bar-fill" style="width:${barPct}%"></div></div></span>
+        <span class="sf-belt">${bName}</span>
+        <span class="sf-dur">${fmtDur(s.durationMinutes)}</span>
+      </div>`;
+    }).join('');
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER — GYMS
+// ══════════════════════════════════════════════════════
+function renderGyms() {
+  const el = document.getElementById('gym-list');
+  if (!S.gyms.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">📍</div><div class="empty-title">No gyms yet</div><div class="empty-text">Add a gym with its coordinates to start matching sessions from your Google location history.</div></div>`;
+    return;
+  }
+  el.innerHTML = `<div class="gym-cards stagger">${S.gyms.map(gym => {
+    const s    = gymStats(gym.id);
+    const years= Object.keys(s.byYear).sort().reverse();
+    const yearRows = years.map(y => `
+      <tr>
+        <td class="td-mono">${y}</td>
+        <td class="td-primary">${s.byYear[y].sessions}</td>
+        <td class="td-mono">${(s.byYear[y].minutes/60).toFixed(1)}h</td>
+        <td class="td-mono">${fmtDur(s.byYear[y].minutes/s.byYear[y].sessions)}</td>
+      </tr>`).join('');
+    return `
+      <div class="gym-card">
+        <div class="gym-card-header">
+          <span class="gym-color-dot" style="background:${gym.color}"></span>
+          <span class="gym-name-text">${gym.name}</span>
+          <div style="display:flex;gap:8px;margin-left:auto">
+            <button class="btn btn-ghost btn-sm" onclick="openGymModal('${gym.id}')">Edit</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteGym('${gym.id}')">✕</button>
+          </div>
+        </div>
+        <div class="gym-card-body">
+          <div class="gym-mini-stats">
+            <div>
+              <div class="gym-mini-label">Sessions</div>
+              <div class="gym-mini-value">${s.total}</div>
+            </div>
+            <div>
+              <div class="gym-mini-label">Mat Hours</div>
+              <div class="gym-mini-value">${s.hours.toFixed(0)}</div>
+            </div>
+            <div>
+              <div class="gym-mini-label">Avg Session</div>
+              <div class="gym-mini-value" style="font-size:15px;padding-top:3px">${s.total > 0 ? fmtDur(s.avg) : '—'}</div>
+            </div>
+          </div>
+          <div class="gym-meta">
+            ${s.first
+              ? `First visit: <strong>${fmtDate(s.first)}</strong> · Last: <strong>${fmtDate(s.last)}</strong>`
+              : 'No sessions matched yet — verify your coordinates and radius.'}
+            <br>
+            📍 ${gym.lat.toFixed(5)}, ${gym.lng.toFixed(5)} · Radius: ${gym.radius}m
+            ${gym.placeId ? ` · ID: <code style="font-size:10px">${gym.placeId.slice(0,14)}…</code>` : ''}
+            ${gym.keywords ? `<br>🔑 Keywords: ${gym.keywords}` : ''}
+          </div>
+        </div>
+        ${years.length ? `
+        <div class="gym-card-footer">
+          <span class="expand-toggle" onclick="toggleExpand('gy-${gym.id}',this)">▸ Year breakdown</span>
+          <span style="font-size:11px;color:var(--text-muted)">${years.length} year${years.length!==1?'s':''}</span>
+        </div>
+        <div class="expandable" id="gy-${gym.id}">
+          <table class="data-table">
+            <thead><tr><th>Year</th><th>Sessions</th><th>Hours</th><th>Avg</th></tr></thead>
+            <tbody>${yearRows}</tbody>
+          </table>
+        </div>` : ''}
+      </div>`;
+  }).join('')}</div>`;
+}
+
+function toggleExpand(id, btn) {
+  const el = document.getElementById(id);
+  el.classList.toggle('open');
+  btn.textContent = el.classList.contains('open') ? '▾ Year breakdown' : '▸ Year breakdown';
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER — BELTS
+// ══════════════════════════════════════════════════════
+function renderBelts() {
+  const el = document.getElementById('belt-list');
+  const asc = [...S.belts].sort((a,b) => new Date(a.date)-new Date(b.date));
+  if (!asc.length) {
+    el.innerHTML = `<div class="empty-state"><div class="empty-icon">🥋</div><div class="empty-title">No belts recorded</div><div class="empty-text">Add your belt promotions to see how your training has evolved through each rank.</div></div>`;
+    return;
+  }
+  const now = new Date();
+  // Compute eras in chronological order so end dates are correct, then reverse for display
+  const eras = asc.map((b, i) => {
+    const start     = new Date(b.date);
+    const next      = i < asc.length-1 ? new Date(asc[i+1].date) : null;
+    const end       = next || now;
+    const isCurrent = !next;
+    const days      = daysBetween(start, end);
+    const months    = (days/30.4).toFixed(1);
+    const bs        = beltStats(b.id);
+    const dotColor  = BELT_DOT_COLORS[b.name] || '#888';
+    return { b, start, end, isCurrent, days, months, bs, dotColor };
+  });
+
+  el.innerHTML = `<div class="belt-timeline stagger">${[...eras].reverse().map(({ b, start, end, isCurrent, days, months, bs, dotColor }) => `
+    <div class="belt-entry">
+      <div class="belt-dot" style="background:${dotColor}"></div>
+      <div class="belt-card">
+        <div class="belt-card-info">
+          <div class="belt-card-name">
+            <span class="belt-pip ${b.name}"></span>
+            ${b.name} Belt
+            ${isCurrent ? '<span class="badge badge-primary">Current</span>' : ''}
+          </div>
+          <div class="belt-card-date">
+            Promoted ${fmtDate(start)}
+            ${isCurrent
+              ? ` · ${days} days (${months} mo) at this rank so far`
+              : ` · Held for ${days} days (${months} mo) · until ${fmtDate(end)}`}
+          </div>
+        </div>
+        <div class="belt-card-stats">
+          <div class="belt-stat">
+            <div class="belt-stat-label">Sessions</div>
+            <div class="belt-stat-value">${bs.total}</div>
+          </div>
+          <div class="belt-stat">
+            <div class="belt-stat-label">Hours</div>
+            <div class="belt-stat-value">${bs.hours.toFixed(0)}</div>
+          </div>
+          <div class="belt-stat">
+            <div class="belt-stat-label">Gyms</div>
+            <div class="belt-stat-value">${bs.gyms}</div>
+          </div>
+        </div>
+        <button class="btn btn-ghost btn-sm" onclick="openBeltModal('${b.id}')" style="flex-shrink:0">Edit</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteBelt('${b.id}')" style="flex-shrink:0">✕</button>
+      </div>
+    </div>`).join('')}</div>`;
+}
+
+function saveDurSettings() {
+  const minVal = parseInt(document.getElementById('cfg-min-dur').value, 10);
+  const maxVal = parseInt(document.getElementById('cfg-max-dur').value, 10);
+
+  if (isNaN(minVal) || isNaN(maxVal) || minVal < 1 || maxVal < minVal) {
+    document.getElementById('dur-feedback').style.color = 'var(--accent)';
+    document.getElementById('dur-feedback').textContent = minVal >= maxVal
+      ? '⚠ Minimum must be less than maximum.'
+      : '⚠ Please enter valid numbers.';
+    return;
+  }
+
+  S.minDur = minVal;
+  S.maxDur = maxVal;
+  saveConfig();
+  recomputeSessions();
+  renderDashboard();
+
+  const feedback = document.getElementById('dur-feedback');
+  feedback.style.color = 'var(--green)';
+  feedback.textContent = `✓ Saved — ${S.sessions.length.toLocaleString()} sessions matched with these settings.`;
+  setTimeout(() => { if (feedback) feedback.textContent = ''; }, 3500);
+}
+
+// ══════════════════════════════════════════════════════
+//  RENDER — DATA
+// ══════════════════════════════════════════════════════
+function renderData() {
+  const fw = document.getElementById('file-list-wrap');
+  const sw = document.getElementById('data-stats-wrap');
+
+  // Keep settings inputs in sync with current state
+  const minEl = document.getElementById('cfg-min-dur');
+  const maxEl = document.getElementById('cfg-max-dur');
+  if (minEl) minEl.value = S.minDur;
+  if (maxEl) maxEl.value = S.maxDur;
+
+  if (!S.loadedFiles.length) { fw.innerHTML = ''; sw.innerHTML = ''; return; }
+
+  fw.innerHTML = `
+    <div class="section-label" style="margin-bottom:10px">${S.loadedFiles.length} file${S.loadedFiles.length!==1?'s':''} loaded</div>
+    ${S.loadedFiles.map((f, i) => `
+      <div class="file-item">
+        <span style="font-size:20px">${f.error ? '⚠️' : '📄'}</span>
+        <div class="file-info">
+          <div class="file-name">${f.name}</div>
+          <div class="file-meta">${(f.size/1024).toFixed(0)} KB${f.segs != null ? ` · ${f.segs.toLocaleString()} segments` : ''}${f.error ? ` · Parse error` : ''}</div>
+        </div>
+        ${f.error
+          ? `<span class="file-err" title="${f.error}">Error</span>`
+          : `<span class="file-badge">${f.visits.toLocaleString()} visits</span>`}
+        <button class="btn btn-danger btn-sm" style="flex-shrink:0;margin-left:4px" onclick="removeFile(${i})">✕</button>
+      </div>`).join('')}`;
+
+  const totalVisits = S.allVisits.length;
+  const matched     = S.sessions.length;
+  const matchRate   = totalVisits > 0 ? ((matched/totalVisits)*100).toFixed(1) : 0;
+
+  sw.innerHTML = `
+    <div class="divider"></div>
+    <div class="section-label" style="margin-bottom:14px">Parse Summary</div>
+    <div class="three-col">
+      <div class="card">
+        <div class="stat-label">Visits Parsed</div>
+        <div class="stat-value" style="font-size:26px">${totalVisits.toLocaleString()}</div>
+        <div class="stat-sub">Across all loaded files</div>
+      </div>
+      <div class="card">
+        <div class="stat-label">Matched Sessions</div>
+        <div class="stat-value" style="font-size:26px">${matched.toLocaleString()}</div>
+        <div class="stat-sub">${matchRate}% of parsed visits</div>
+      </div>
+      <div class="card">
+        <div class="stat-label">Unmatched</div>
+        <div class="stat-value" style="font-size:26px">${(totalVisits - matched).toLocaleString()}</div>
+        <div class="stat-sub">Visits at other locations</div>
+      </div>
+    </div>`;
+}
+
+function switchExportTab(id, btn) {
+  document.querySelectorAll('.export-tab-content').forEach(el => el.classList.remove('active'));
+  document.querySelectorAll('.export-tab').forEach(el => el.classList.remove('active'));
+  document.getElementById('export-' + id).classList.add('active');
+  btn.classList.add('active');
+}
+
+// ══════════════════════════════════════════════════════
+//  INIT
+// ══════════════════════════════════════════════════════
+loadConfig();
+setTheme(S.theme);
+renderDashboard();
+</script>
+</body>
+</html>
