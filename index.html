@@ -304,7 +304,8 @@ input[type="file"]{display:none}
 .mobile-nav-item.active{color:var(--primary)}
 .mobile-nav-item svg{width:18px;height:18px;flex-shrink:0;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round}
 
-/* Geocode search result list */
+/* Mobile theme row — hidden on desktop, shown via media query */
+.mobile-theme-row{display:none;justify-content:center;align-items:center;gap:12px;padding:6px 0 4px;border-top:1px solid var(--border)}
 .geo-results{background:var(--card);border:1px solid var(--border-bright);border-radius:5px;margin-top:4px;overflow:hidden;display:none;max-height:260px;overflow-y:auto}
 .geo-results.show{display:block}
 .geo-result-item{padding:9px 12px;font-size:12px;cursor:pointer;border-bottom:1px solid var(--border);transition:background .15s;line-height:1.4}
@@ -321,10 +322,10 @@ input[type="file"]{display:none}
 }
 
 @media(max-width:768px){
-  body{flex-direction:column}
+  body{flex-direction:column;overflow-x:hidden;overflow-y:auto}
   .sidebar{display:none}
   .mobile-nav{display:block}
-  .main{height:auto;min-height:100vh;overflow-y:auto;padding:18px 16px 80px;padding-bottom:calc(70px + env(safe-area-inset-bottom,0))}
+  .main{height:auto;min-height:100vh;overflow:visible;padding:18px 16px calc(70px + env(safe-area-inset-bottom,0))}
   .page-title{font-size:28px}
   .page-header{flex-direction:column;align-items:flex-start;gap:12px;margin-bottom:20px}
   .header-right{width:100%;flex-wrap:wrap}
@@ -332,12 +333,12 @@ input[type="file"]{display:none}
   .stat-value{font-size:22px}
   .two-col,.three-col{grid-template-columns:1fr;gap:12px}
   .form-row,.form-row.three{grid-template-columns:1fr;gap:10px}
-  .modal{padding:18px;width:100%;max-width:100%;border-radius:16px 16px 0 0;margin:0;position:fixed;bottom:0;left:0;right:0;max-height:92vh}
+  /* Reset any grid-column spans inside single-column form rows */
+  .form-row [style*="grid-column"]{grid-column:auto!important}
+  /* Modal slides up from bottom, scrollable for tall forms + keyboard */
+  .modal{padding:18px;width:100%;max-width:100%;border-radius:16px 16px 0 0;margin:0;position:fixed;bottom:0;left:0;right:0;max-height:92vh;overflow-y:auto}
   .modal-overlay{align-items:flex-end}
-  /* Year chart scrollable on mobile */
-  .year-chart{overflow-x:auto;gap:4px;height:88px}
-  .year-bar-wrap{min-width:28px}
-  /* Sessions table on mobile: hide belt col, simplify */
+  /* Sessions table on mobile: hide belt + bar cols */
   .sessions-header-row{grid-template-columns:72px 64px 1fr 52px;gap:6px;padding:5px 8px}
   .session-full-row{grid-template-columns:72px 64px 1fr 52px;gap:6px;padding:7px 8px}
   .sf-belt{display:none}
@@ -347,7 +348,7 @@ input[type="file"]{display:none}
   /* Years table scrollable */
   .years-table-wrap-inner{overflow-x:auto}
   .years-table{min-width:480px}
-  /* Gym mini stats 3-col stays, card body wraps */
+  /* Gym mini stats */
   .gym-mini-stats{gap:6px}
   /* Belt card stack */
   .belt-card{flex-wrap:wrap;gap:10px}
@@ -356,11 +357,13 @@ input[type="file"]{display:none}
   #page-sessions .header-right{flex-direction:column;align-items:stretch}
   #page-sessions .header-right select{width:100%!important}
   .sessions-summary-bar{flex-wrap:wrap;gap:12px}
+  /* Mobile theme switcher row */
+  .mobile-theme-row{display:flex!important}
 }
 
 @media(max-width:380px){
   .stat-grid{grid-template-columns:1fr}
-  .main{padding:14px 12px 80px}
+  .main{padding:14px 12px calc(70px + env(safe-area-inset-bottom,0))}
 }
 </style>
 </head>
@@ -417,7 +420,7 @@ input[type="file"]{display:none}
     <div class="page-header">
       <div>
         <h1 class="page-title">Overview</h1>
-        <p class="page-subtitle">Your estimated BJJ training snapshot</p>
+        <p class="page-subtitle">Your complete BJJ training snapshot</p>
       </div>
     </div>
     <div class="stat-grid stagger" id="dash-stats"></div>
@@ -612,6 +615,12 @@ input[type="file"]{display:none}
 
 <!-- ── MOBILE BOTTOM NAV ──────────────────────────────── -->
 <nav class="mobile-nav">
+  <div class="mobile-theme-row">
+    <div class="theme-swatch swatch-night" data-t="night" onclick="setTheme('night')" title="Night"></div>
+    <div class="theme-swatch swatch-white" data-t="white" onclick="setTheme('white')" title="White"></div>
+    <div class="theme-swatch swatch-tatami" data-t="tatami" onclick="setTheme('tatami')" title="Tatami"></div>
+    <div class="theme-swatch swatch-steel" data-t="steel" onclick="setTheme('steel')" title="Steel"></div>
+  </div>
   <div class="mobile-nav-inner">
     <button class="mobile-nav-item active" data-page="dashboard" onclick="navigate('dashboard')">
       <svg viewBox="0 0 16 16"><rect x="1" y="1" width="6" height="6" rx="1"/><rect x="9" y="1" width="6" height="6" rx="1"/><rect x="1" y="9" width="6" height="6" rx="1"/><rect x="9" y="9" width="6" height="6" rx="1"/></svg>
@@ -658,8 +667,8 @@ input[type="file"]{display:none}
       </div>
     </div>
     <div class="divider" style="margin:10px 0"></div>
-    <div class="form-row">
-      <div class="form-field" style="flex:2">
+    <div class="form-row" style="grid-template-columns:1fr 1fr 80px">
+      <div class="form-field" style="grid-column:span 2">
         <label class="form-label">Gym Name *</label>
         <input class="form-input" id="gym-name" placeholder="e.g. NW Jiu Jitsu Academy">
       </div>
@@ -1107,6 +1116,8 @@ function navigate(tab) {
   document.querySelectorAll('.nav-item, .mobile-nav-item').forEach(n => n.classList.remove('active'));
   document.getElementById(`page-${tab}`).classList.add('active');
   document.querySelectorAll(`[data-page="${tab}"]`).forEach(el => el.classList.add('active'));
+  // Scroll to top on navigation
+  window.scrollTo(0, 0);
   document.querySelector('.main').scrollTo(0, 0);
   if (tab === 'dashboard') renderDashboard();
   else if (tab === 'gyms')     renderGyms();
@@ -1363,8 +1374,6 @@ async function handleFiles(files) {
       const segs   = (json.semanticSegments?.length || 0) + (json.timelineObjects?.length || 0);
       S.loadedFiles.push({ name: file.name, size: file.size, visits: visits.length, segs });
       S.allVisits.push(...visits);
-      // Store per-file visits so individual files can be removed
-      S.fileVisits = S.fileVisits || {};
       S.fileVisits[file.name + '|' + file.size] = visits;
     } catch(e) {
       S.loadedFiles.push({ name: file.name, size: file.size, error: String(e.message || e) });
