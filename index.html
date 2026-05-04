@@ -658,26 +658,12 @@ input[type="file"]{display:none}
     <!-- Location search -->
     <div class="form-row full" style="margin-bottom:6px">
       <div class="form-field">
-        <label class="form-label">Search Location <span style="text-transform:none;letter-spacing:0;font-family:Barlow,sans-serif;font-size:10px">— search then tap a result, or tap the map to pin</span></label>
+        <label class="form-label">Search by name or address <span style="text-transform:none;letter-spacing:0;font-family:Barlow,sans-serif;font-size:10px">— if name isn't found, try the street address</span></label>
         <div style="display:flex;gap:6px">
-          <input class="form-input" id="geo-search" placeholder="e.g. Seattle Integrated Martial Arts" onkeydown="if(event.key==='Enter'){event.preventDefault();geocodeSearch()}">
+          <input class="form-input" id="geo-search" placeholder="Gym name or street address…" onkeydown="if(event.key==='Enter'){event.preventDefault();geocodeSearch()}">
           <button class="btn btn-ghost" onclick="geocodeSearch()" style="flex-shrink:0;white-space:nowrap">Search</button>
         </div>
         <div id="geo-results" class="geo-results"></div>
-      </div>
-    </div>
-
-    <!-- Tap-to-pin map -->
-    <div style="margin-bottom:10px">
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
-        <span class="form-label">Tap map to drop a pin</span>
-        <button class="btn btn-ghost btn-sm" onclick="toggleMap()" id="map-toggle-btn">Show map</button>
-      </div>
-      <div id="map-picker-wrap" style="display:none;border-radius:7px;overflow:hidden;border:1px solid var(--border);position:relative">
-        <iframe id="map-picker-frame" style="width:100%;height:260px;border:none;display:block" title="Map picker"></iframe>
-        <div id="map-pin-overlay" style="position:absolute;inset:0;cursor:crosshair;z-index:10" onclick="handleMapClick(event)"></div>
-        <div id="map-pin-marker" style="display:none;position:absolute;transform:translate(-50%,-100%);font-size:28px;pointer-events:none;z-index:20;line-height:1">📍</div>
-        <div id="map-coords-badge" style="display:none;position:absolute;bottom:8px;left:50%;transform:translateX(-50%);background:var(--card);border:1px solid var(--border-bright);border-radius:20px;padding:4px 12px;font-family:'Space Mono',monospace;font-size:10px;color:var(--primary);white-space:nowrap;z-index:20"></div>
       </div>
     </div>
 
@@ -696,7 +682,7 @@ input[type="file"]{display:none}
     <div class="form-row" style="grid-template-columns:1fr 1fr 80px">
       <div class="form-field" style="grid-column:span 2">
         <label class="form-label">Gym Name *</label>
-        <input class="form-input" id="gym-name" placeholder="e.g. NW Jiu Jitsu Academy">
+        <input class="form-input" id="gym-name" placeholder="e.g. City Jiu Jitsu Academy">
       </div>
       <div class="form-field">
         <label class="form-label">Color</label>
@@ -706,11 +692,11 @@ input[type="file"]{display:none}
     <div class="form-row three">
       <div class="form-field" style="grid-column:span 2">
         <label class="form-label">Latitude * <span style="text-transform:none;letter-spacing:0;font-family:Barlow,sans-serif;font-size:10px">— or paste a "lat, lng" pair here to fill both</span></label>
-        <input class="form-input" id="gym-lat" placeholder="47.6062" onpaste="handleCoordPaste(event)">
+        <input class="form-input" id="gym-lat" placeholder="39.8283" onpaste="handleCoordPaste(event)">
       </div>
       <div class="form-field">
         <label class="form-label">Longitude *</label>
-        <input class="form-input" id="gym-lng" placeholder="-122.3321">
+        <input class="form-input" id="gym-lng" placeholder="-98.5795">
       </div>
     </div>
     <div class="form-row full">
@@ -722,13 +708,13 @@ input[type="file"]{display:none}
     <div class="form-row full">
       <div class="form-field">
         <label class="form-label">Google Place ID <span style="text-transform:none;letter-spacing:0;font-family:Barlow,sans-serif;font-size:10px">(optional — highest confidence matching)</span></label>
-        <input class="form-input" id="gym-placeid" placeholder="ChIJj6UmkbpqkFQRtkIjajltHqw">
+        <input class="form-input" id="gym-placeid" placeholder="ChIJxxxxxxxxxxxxxxxxxxxxxxxx">
       </div>
     </div>
     <div class="form-row full">
       <div class="form-field">
         <label class="form-label">Keywords <span style="text-transform:none;letter-spacing:0;font-family:Barlow,sans-serif;font-size:10px">(optional — comma-separated, matched against place names)</span></label>
-        <input class="form-input" id="gym-keywords" placeholder="e.g. nw jiu jitsu, gracie seattle">
+        <input class="form-input" id="gym-keywords" placeholder="e.g. city jiu jitsu, gracie gym">
       </div>
     </div>
     <div class="form-actions">
@@ -1202,93 +1188,12 @@ function parseMapsUrl(url) {
     });
     fb.style.color = 'var(--green)';
     fb.textContent = `✓ Got it — ${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-    centerMapOn(lat, lng);
   } else {
     fb.style.color = 'var(--accent)';
     fb.textContent = "Couldn't find coordinates in that link — try the long-press Share method.";
   }
 }
 // ══════════════════════════════════════════════════════
-let _mapState = { visible: false, lat: 47.608, lng: -122.335, zoom: 13 };
-
-function toggleMap() {
-  _mapState.visible = !_mapState.visible;
-  const wrap = document.getElementById('map-picker-wrap');
-  const btn  = document.getElementById('map-toggle-btn');
-  wrap.style.display = _mapState.visible ? 'block' : 'none';
-  btn.textContent = _mapState.visible ? 'Hide map' : 'Show map';
-  if (_mapState.visible) renderMapTiles();
-}
-
-function renderMapTiles(lat, lng, zoom) {
-  if (lat !== undefined) { _mapState.lat = lat; _mapState.lng = lng; }
-  if (zoom !== undefined) _mapState.zoom = zoom;
-  const frame = document.getElementById('map-picker-frame');
-  // Use OSM embed with a marker if we have a pinned location
-  const pinned = document.getElementById('gym-lat').value && document.getElementById('gym-lng').value;
-  const pLat = parseFloat(document.getElementById('gym-lat').value) || _mapState.lat;
-  const pLng = parseFloat(document.getElementById('gym-lng').value) || _mapState.lng;
-  const cLat = _mapState.lat, cLng = _mapState.lng, z = _mapState.zoom;
-  const marker = pinned ? `&marker=${pLat}%2C${pLng}` : '';
-  frame.src = `https://www.openstreetmap.org/export/embed.html?bbox=${cLng-0.02}%2C${cLat-0.01}%2C${cLng+0.02}%2C${cLat+0.01}&layer=mapnik${marker}`;
-}
-
-function handleMapClick(e) {
-  // Convert pixel click on overlay to lat/lng using iframe bounds
-  const overlay = document.getElementById('map-pin-overlay');
-  const rect    = overlay.getBoundingClientRect();
-  const xFrac   = (e.clientX - rect.left)  / rect.width;
-  const yFrac   = (e.clientY - rect.top)   / rect.height;
-
-  // Convert map center + zoom to lat/lng delta
-  const z     = _mapState.zoom;
-  const span  = 360 / Math.pow(2, z);
-  const lngSpan = span * (rect.width / 256);
-  const latSpan = lngSpan * (rect.height / rect.width) * 0.85; // mercator approx
-
-  const bboxW = _mapState.lng - lngSpan / 2;
-  const bboxE = _mapState.lng + lngSpan / 2;
-  const bboxN = _mapState.lat + latSpan / 2;
-  const bboxS = _mapState.lat - latSpan / 2;
-
-  const lat = +(bboxN - yFrac * (bboxN - bboxS)).toFixed(6);
-  const lng = +(bboxW + xFrac * (bboxE - bboxW)).toFixed(6);
-
-  // Set fields
-  document.getElementById('gym-lat').value = lat;
-  document.getElementById('gym-lng').value = lng;
-
-  // Show pin marker on overlay
-  const marker = document.getElementById('map-pin-marker');
-  marker.style.display = 'block';
-  marker.style.left = e.clientX - rect.left + 'px';
-  marker.style.top  = e.clientY - rect.top  + 'px';
-
-  // Show coords badge
-  const badge = document.getElementById('map-coords-badge');
-  badge.style.display = 'block';
-  badge.textContent = `${lat}, ${lng}`;
-
-  // Flash lat/lng fields green
-  ['gym-lat','gym-lng'].forEach(id => {
-    const el = document.getElementById(id);
-    el.style.borderColor = 'var(--green)';
-    setTimeout(() => el.style.borderColor = '', 1200);
-  });
-}
-
-// Called from selectGeoResult to also re-center the map
-function centerMapOn(lat, lng) {
-  _mapState.lat = lat;
-  _mapState.lng = lng;
-  if (_mapState.visible) renderMapTiles(lat, lng);
-  // Also show pin
-  document.getElementById('map-pin-marker').style.display = 'none';
-  const badge = document.getElementById('map-coords-badge');
-  badge.style.display = 'block';
-  badge.textContent = `${lat.toFixed(5)}, ${lng.toFixed(5)}`;
-}
-
 
 let _geoTimer = null;
 
@@ -1316,17 +1221,12 @@ async function geocodeSearch() {
     }
 
     if (!data.length) {
-      const mapsUrl = `https://www.google.com/maps/search/${encodeURIComponent(q)}`;
       res.innerHTML = `
         <div class="geo-status" style="padding:12px;line-height:1.8;font-size:11px">
-          <div style="color:var(--accent);font-weight:600;margin-bottom:6px">⚠ Not found in OpenStreetMap</div>
-          <div style="color:var(--text);font-weight:500;margin-bottom:4px">Easiest fix — share from Google Maps:</div>
-          <div style="color:var(--text-muted);margin-bottom:8px">
-            1. Open <a href="${mapsUrl}" target="_blank" style="color:var(--primary);text-decoration:underline">Google Maps → search "${q}"</a><br>
-            2. Long-press the pin → tap <strong style="color:var(--text)">Share</strong> → tap <strong style="color:var(--text)">Copy link</strong><br>
-            3. Come back here and paste the link into the <strong style="color:var(--text)">Paste a Google Maps link</strong> field above the name — coordinates extract automatically
-          </div>
-          <div style="color:var(--text-muted);font-size:10px">Or try searching by street address instead.</div>
+          <div style="color:var(--accent);font-weight:600;margin-bottom:8px">⚠ "${q}" wasn't found</div>
+          <div style="color:var(--text);margin-bottom:6px">Try searching by street address instead:</div>
+          <div style="color:var(--text-muted);margin-bottom:10px">Addresses are almost always found even when business names aren't. Look up the gym's address in Google Maps, then type it in the search box above.</div>
+          <div style="font-size:10px;color:var(--text-muted)">e.g. <em>"123 Main St, Portland OR"</em></div>
         </div>`;
       return;
     }
@@ -1356,18 +1256,12 @@ function selectGeoResult(idx) {
   document.getElementById('gym-lat').value = lat.toFixed(6);
   document.getElementById('gym-lng').value = lng.toFixed(6);
 
-  // Auto-fill name if empty
   if (!document.getElementById('gym-name').value.trim()) {
     document.getElementById('gym-name').value = name;
   }
 
-  // Center map on result
-  centerMapOn(lat, lng);
-
-  // Show a success confirmation in place of results
   document.getElementById('geo-results').innerHTML =
     `<div class="geo-status" style="color:var(--green)">✓ Location set — ${lat.toFixed(5)}, ${lng.toFixed(5)}</div>`;
-
   document.getElementById('geo-search').value = name;
 }
 
@@ -1424,20 +1318,6 @@ function openGymModal(id = null) {
   const r = document.getElementById('geo-results');
   r.innerHTML = '';
   r.classList.remove('show');
-  // Reset map picker
-  _mapState.visible = false;
-  document.getElementById('map-picker-wrap').style.display = 'none';
-  document.getElementById('map-toggle-btn').textContent = 'Show map';
-  document.getElementById('map-pin-marker').style.display = 'none';
-  document.getElementById('map-coords-badge').style.display = 'none';
-  // If editing, center map on existing coords
-  if (g?.lat && g?.lng) {
-    _mapState.lat = g.lat;
-    _mapState.lng = g.lng;
-  } else {
-    _mapState.lat = 47.608;
-    _mapState.lng = -122.335;
-  }
   openModal('gymModal');
 }
 
